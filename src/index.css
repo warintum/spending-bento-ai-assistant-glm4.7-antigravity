@@ -2,7 +2,7 @@
   --bg-primary: #0a0a0c;
   --bg-secondary: #16161a;
   --bg-glass: rgba(255, 255, 255, 0.05);
-  --accent-primary: #c1c4c3;
+  --accent-primary: #35bb8e;
   /* User Silver Accent */
   --accent-secondary: #fb7185;
   --text-primary: #ffffff;
@@ -17,6 +17,8 @@
   --user-bg: none;
   --user-blur: 20px;
   --user-opacity: 0.12;
+  --user-bg-blur: 0px;
+  --user-bg-dim: 1;
 }
 
 * {
@@ -27,7 +29,24 @@
 
 body {
   background-color: var(--bg-primary);
-  /* Bento Grid Background + User BG Image support */
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+  transition: background-color 0.5s ease;
+}
+
+/* Background Layer to allow independent blur/dim */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
   background-image:
     var(--user-bg),
     radial-gradient(at 50% 0%, rgba(45, 212, 191, 0.08) 0px, transparent 50%),
@@ -36,12 +55,8 @@ body {
   background-size: cover, 100% 100%, 30px 30px, 30px 30px;
   background-position: center;
   background-attachment: fixed;
-  color: var(--text-primary);
-  font-family: var(--font-main);
-  -webkit-font-smoothing: antialiased;
-  min-height: 100vh;
-  overflow-x: hidden;
-  transition: background-color 0.5s ease;
+  filter: blur(var(--user-bg-blur)) brightness(var(--user-bg-dim));
+  transition: filter 0.3s ease;
 }
 
 body.theme-oled {

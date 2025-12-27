@@ -15,7 +15,8 @@ import {
   ChevronUp,
   Moon,
   Sun,
-  Settings
+  Settings,
+  Upload
 } from 'lucide-react';
 import './index.css';
 
@@ -55,8 +56,11 @@ const App: React.FC = () => {
   const [blur, setBlur] = useState<number>(() => parseInt(localStorage.getItem('glass-blur') || '20'));
   const [opacity, setOpacity] = useState<number>(() => parseInt(localStorage.getItem('glass-opacity') || '15'));
   const [bgImage, setBgImage] = useState<string>(() => localStorage.getItem('glass-bg') || '');
+  const [bgBlur, setBgBlur] = useState<number>(() => parseInt(localStorage.getItem('glass-bg-blur') || '0'));
+  const [bgDim, setBgDim] = useState<number>(() => parseInt(localStorage.getItem('glass-bg-dim') || '100'));
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     localStorage.setItem('bento-transactions', JSON.stringify(transactions));
@@ -74,11 +78,19 @@ const App: React.FC = () => {
     root.style.setProperty('--user-blur', `${blur}px`);
     root.style.setProperty('--user-opacity', `${opacity / 100}`);
     root.style.setProperty('--user-bg', bgImage ? `url(${bgImage})` : 'none');
+    root.style.setProperty('--user-bg-blur', `${bgBlur}px`);
+    root.style.setProperty('--user-bg-dim', `${bgDim / 100}`);
 
-    localStorage.setItem('glass-blur', blur.toString());
-    localStorage.setItem('glass-opacity', opacity.toString());
-    localStorage.setItem('glass-bg', bgImage);
-  }, [blur, opacity, bgImage]);
+    try {
+      localStorage.setItem('glass-blur', blur.toString());
+      localStorage.setItem('glass-opacity', opacity.toString());
+      localStorage.setItem('glass-bg', bgImage);
+      localStorage.setItem('glass-bg-blur', bgBlur.toString());
+      localStorage.setItem('glass-bg-dim', bgDim.toString());
+    } catch (e) {
+      console.warn('Storage limit reached');
+    }
+  }, [blur, opacity, bgImage, bgBlur, bgDim]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -150,13 +162,30 @@ const App: React.FC = () => {
     });
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 1.5 * 1024 * 1024) {
+        alert('รูปภาพใหญ่เกินไปครับ (จำกัด 1.5MB)');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setBgImage(base64String);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const bgPresets = [
     '',
-    // Original Colorful Presets
+    // 🌈
     'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=1000',
     'https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?auto=format&fit=crop&q=80&w=1000',
     'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&q=80&w=1000',
-    // New Dark Presets
+    'https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?auto=format&fit=crop&q=80&w=1074',
+    // 🌑
     'https://images.unsplash.com/photo-1557683316-973673baf926?auto=format&fit=crop&q=80&w=1000',
     'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&q=80&w=1000',
     'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&q=80&w=1000',
@@ -194,7 +223,7 @@ const App: React.FC = () => {
 
             <div className="setting-item">
               <div className="setting-header">
-                <label className="text-sm">Blur Intensity</label>
+                <label className="text-sm">Glass Blur (ตัวการ์ด)</label>
                 <span className="text-xs">{blur}px</span>
               </div>
               <input type="range" min="0" max="40" value={blur} onChange={e => setBlur(parseInt(e.target.value))} />
@@ -202,14 +231,42 @@ const App: React.FC = () => {
 
             <div className="setting-item">
               <div className="setting-header">
-                <label className="text-sm">Glass Opacity</label>
+                <label className="text-sm">Glass Opacity (ความใส)</label>
                 <span className="text-xs">{opacity}%</span>
               </div>
               <input type="range" min="0" max="80" value={opacity} onChange={e => setOpacity(parseInt(e.target.value))} />
             </div>
 
+            <div style={{ padding: '15px 0', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div className="setting-item">
+                <div className="setting-header">
+                  <label className="text-sm">Wallpaper Blur (พื้นหลัง)</label>
+                  <span className="text-xs">{bgBlur}px</span>
+                </div>
+                <input type="range" min="0" max="25" value={bgBlur} onChange={e => setBgBlur(parseInt(e.target.value))} />
+              </div>
+
+              <div className="setting-item">
+                <div className="setting-header">
+                  <label className="text-sm">Wallpaper Brightness (ความสว่าง)</label>
+                  <span className="text-xs">{bgDim}%</span>
+                </div>
+                <input type="range" min="20" max="100" value={bgDim} onChange={e => setBgDim(parseInt(e.target.value))} />
+              </div>
+            </div>
+
             <div className="setting-item">
-              <label className="text-sm" style={{ marginBottom: '8px', display: 'block' }}>Background Preset</label>
+              <div className="setting-header" style={{ marginBottom: '8px' }}>
+                <label className="text-sm">Background Preset</label>
+                <button
+                  className="action-btn"
+                  style={{ padding: '4px 10px', fontSize: '0.75rem', gap: '6px', border: '1px solid var(--accent-primary)', color: 'white' }}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload size={14} /> อัพโหลด
+                </button>
+                <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={handleFileUpload} />
+              </div>
               <div className="bg-presets">
                 {bgPresets.map((bg, i) => (
                   <button
@@ -221,6 +278,13 @@ const App: React.FC = () => {
                     {!bg && <X size={14} />}
                   </button>
                 ))}
+                {bgImage && !bgPresets.includes(bgImage) && (
+                  <button
+                    className="preset-btn active"
+                    style={{ backgroundImage: `url(${bgImage})` }}
+                    onClick={() => setBgImage(bgImage)}
+                  />
+                )}
               </div>
             </div>
             <p className="text-xs" style={{ opacity: 0.5, fontStyle: 'italic' }}>* Settings only apply in Glass Mode</p>
