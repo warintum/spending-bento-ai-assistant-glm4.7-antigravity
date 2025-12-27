@@ -27,6 +27,13 @@
   padding: 0;
 }
 
+/* Global Mobile Zoom Fix */
+input,
+select,
+textarea {
+  font-size: 16px !important;
+}
+
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
@@ -355,6 +362,8 @@ body:not(.theme-oled):not(.theme-neon) .message.bot {
   color: white;
   padding: 12px 0;
   outline: none;
+  font-size: 16px;
+  /* Prevents mobile zoom on focus */
 }
 
 .chat-send-btn {
@@ -407,6 +416,8 @@ body:not(.theme-oled):not(.theme-neon) .message.bot {
   padding: 10px;
   color: white;
   width: 100%;
+  font-size: 16px;
+  /* Prevents mobile zoom on focus */
 }
 
 .neon-toggle {

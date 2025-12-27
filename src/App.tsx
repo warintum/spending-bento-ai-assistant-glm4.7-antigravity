@@ -114,9 +114,18 @@ const App: React.FC = () => {
     const amount = amountMatch ? parseFloat(amountMatch[0].replace(/,/g, '')) : 0;
     if (amount === 0) return null;
     let type: 'income' | 'expense' = 'expense';
-    const incomeKeywords = ['เงินเดือน', 'ได้เงิน', 'เข้า', 'รายรับ', 'โอนเข้า', 'ถอนเงิน', 'ค่าคอม'];
+
+    // Expanded Thai Income Keywords for smarter recognition
+    const incomeKeywords = [
+      'เงินเดือน', 'ได้เงิน', 'เข้า', 'รายรับ', 'โอนเข้า', 'ถอนเงิน', 'ค่าคอม',
+      'รับ', 'รับเงิน', 'ขาย', 'ขายของ', 'ขายได้', 'กำไร', 'โบนัส', 'ทิป',
+      'ถูกหวย', 'สลาก', 'ปันผล', 'มรดก', 'คืนเงิน'
+    ];
+
     if (incomeKeywords.some(k => text.includes(k))) type = 'income';
-    let note = text.replace(/[\d,]+/g, '').replace(/บาท|บ./g, '').trim();
+
+    // Fix: Escape the dot in 'บ.' to match literal 'บ.' and not wildcard any character
+    let note = text.replace(/[\d,]+/g, '').replace(/บาท|บ\./g, '').trim();
     if (!note) note = type === 'income' ? 'รายรับเพิ่มขึ้น' : 'รายจ่ายใหม่';
     return { amount, type, note };
   };
