@@ -8,7 +8,12 @@ import {
   ArrowDownLeft,
   PieChart,
   Send,
-  Sparkles
+  Sparkles,
+  Trash2,
+  Edit2,
+  X,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import './index.css';
 
@@ -37,6 +42,9 @@ const App: React.FC = () => {
     { id: '1', text: 'สวัสดีครับ! พิมพ์บอกรายการรายรับรายจ่ายได้เลย เช่น "กินข้าว 60 บาท" หรือ "เงินเดือนเข้า 20000"', sender: 'bot' }
   ]);
   const [chatInput, setChatInput] = useState('');
+  const [viewAll, setViewAll] = useState(false);
+  const [editingTx, setEditingTx] = useState<Transaction | null>(null);
+
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -69,12 +77,8 @@ const App: React.FC = () => {
 
     let type: 'income' | 'expense' = 'expense';
     const incomeKeywords = ['เงินเดือน', 'ได้เงิน', 'เข้า', 'รายรับ', 'โอนเข้า', 'ถอนเงิน'];
-    const expenseKeywords = ['จ่าย', 'ซื้อ', 'กิน', 'ค่า', 'เติม', 'เสีย'];
-
     if (incomeKeywords.some(k => text.includes(k))) {
       type = 'income';
-    } else if (expenseKeywords.some(k => text.includes(k))) {
-      type = 'expense';
     }
 
     // Clean note: remove amount and keywords
@@ -111,16 +115,26 @@ const App: React.FC = () => {
       };
       setMessages(prev => [...prev, botMsg]);
     } else {
-      const botMsg: Message = {
-        id: (Date.now() + 2).toString(),
-        text: 'ขอโทษครับ ผมไม่เข้าใจจำนวนเงิน ลองพิมพ์ใหม่ดูนะครับ เช่น "ก๋วยเตี๋ยว 50 บาท"',
-        sender: 'bot'
-      };
+      const botMsg: Message = { id: (Date.now() + 2).toString(), text: 'ขอโทษครับ ลองพิมพ์เป็น "ค่าอาหาร 50" นะครับ', sender: 'bot' };
       setMessages(prev => [...prev, botMsg]);
     }
 
     setChatInput('');
   };
+
+  const deleteTransaction = (id: string) => {
+    if (confirm('ยืนยันการลบรายการนี้?')) {
+      setTransactions(transactions.filter(t => t.id !== id));
+    }
+  };
+
+  const updateTransaction = () => {
+    if (!editingTx) return;
+    setTransactions(transactions.map(t => t.id === editingTx.id ? editingTx : t));
+    setEditingTx(null);
+  };
+
+  const displayedTransactions = viewAll ? transactions : transactions.slice(0, 5);
 
   return (
     <div className="fade-in">
@@ -178,46 +192,112 @@ const App: React.FC = () => {
           {/* Chat Input Integrated */}
           <div className="chat-input-wrapper">
             <input
-              type="text"
-              className="chat-input"
-              placeholder="บอกรายการที่นี่... (เช่น กินข้าว 60)"
-              value={chatInput}
-              onChange={e => setChatInput(e.target.value)}
+              type="text" className="chat-input" placeholder="บอกรายการที่นี่..."
+              value={chatInput} onChange={e => setChatInput(e.target.value)}
               onKeyPress={e => e.key === 'Enter' && handleSendMessage()}
             />
-            <button className="chat-send-btn" onClick={handleSendMessage}>
-              <Send size={16} color="black" />
-            </button>
+            <button className="chat-send-btn" onClick={handleSendMessage}><Send size={16} color="black" /></button>
           </div>
         </div>
 
         {/* Activity Title */}
-        <div style={{ gridColumn: 'span 2', marginTop: '8px' }}>
+        <div style={{ gridColumn: 'span 2', marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 className="text-sm" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <History size={16} /> รายการล่าสุด
           </h2>
+          {transactions.length > 5 && (
+            <button
+              onClick={() => setViewAll(!viewAll)}
+              style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+            >
+              {viewAll ? <><ChevronUp size={14} /> แสดงน้อยลง</> : <><ChevronDown size={14} /> ดูทั้งหมด</>}
+            </button>
+          )}
         </div>
 
         {/* Transaction History Items */}
-        {transactions.slice(0, 5).map(tx => (
-          <div key={tx.id} className="bento-card large" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px' }}>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <div style={{
-                padding: '10px',
-                borderRadius: '12px',
-                background: tx.type === 'income' ? 'rgba(45, 212, 191, 0.1)' : 'rgba(251, 113, 133, 0.1)'
-              }}>
-                {tx.type === 'income' ? <ArrowUpRight size={20} className="text-teal" /> : <ArrowDownLeft size={20} className="text-coral" />}
+        {displayedTransactions.map(tx => (
+          <React.Fragment key={tx.id}>
+            <div className="bento-card large" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', transition: 'all 0.3s ease' }}>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <div style={{
+                  padding: '8px', borderRadius: '10px',
+                  background: tx.type === 'income' ? 'rgba(45, 212, 191, 0.1)' : 'rgba(251, 113, 133, 0.1)'
+                }}>
+                  {tx.type === 'income' ? <ArrowUpRight size={18} className="text-teal" /> : <ArrowDownLeft size={18} className="text-coral" />}
+                </div>
+                <div>
+                  <p className="text-sm">{tx.note}</p>
+                  <p className="text-xs">{tx.date}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm">{tx.note || 'ไม่ระบุ'}</p>
-                <p className="text-xs">{tx.date}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <p className={`text-lg ${tx.type === 'income' ? 'text-teal' : 'text-coral'}`} style={{ marginRight: '4px' }}>
+                  {tx.type === 'income' ? '+' : '-'}฿{tx.amount.toLocaleString()}
+                </p>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button className="action-btn edit" onClick={() => setEditingTx(editingTx?.id === tx.id ? null : tx)}>
+                    <Edit2 size={16} />
+                  </button>
+                  <button className="action-btn delete" onClick={() => deleteTransaction(tx.id)}>
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
             </div>
-            <p className={`text-lg ${tx.type === 'income' ? 'text-teal' : 'text-coral'}`}>
-              {tx.type === 'income' ? '+' : '-'}฿{tx.amount.toLocaleString()}
-            </p>
-          </div>
+
+            {/* Inline Neon Edit Form */}
+            {editingTx?.id === tx.id && (
+              <div className="inline-edit-area">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0px' }}>
+                  <span className="text-xs text-teal" style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Sparkles size={14} /> แก้ไขรายการ
+                  </span>
+                  <button className="action-btn" onClick={() => setEditingTx(null)}><X size={16} /></button>
+                </div>
+
+                <div className="inline-row">
+                  <div className="neon-toggle-container">
+                    <label className="text-xs">ประเภท</label>
+                    <div
+                      className={`neon-toggle ${editingTx.type}`}
+                      onClick={() => setEditingTx({ ...editingTx, type: editingTx.type === 'income' ? 'expense' : 'income' })}
+                    >
+                      <div className="toggle-thumb"></div>
+                      <span className="toggle-label">{editingTx.type === 'income' ? 'รายรับ' : 'รายจ่าย'}</span>
+                    </div>
+                  </div>
+
+                  <div className="neon-input-group" style={{ flex: 1 }}>
+                    <label className="text-xs">จำนวนเงิน (฿)</label>
+                    <input
+                      type="number" className="neon-input" value={editingTx.amount}
+                      onChange={e => setEditingTx({ ...editingTx, amount: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                </div>
+
+                <div className="inline-row">
+                  <div className="neon-input-group" style={{ flex: 1 }}>
+                    <label className="text-xs">บันทึกช่วยจำ</label>
+                    <input
+                      className="neon-input" value={editingTx.note}
+                      onChange={e => setEditingTx({ ...editingTx, note: e.target.value })}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button className="neon-btn primary" onClick={updateTransaction}>
+                      บันทึก
+                    </button>
+                    <button className="neon-btn secondary" onClick={() => setEditingTx(null)}>
+                      ยกเลิก
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </React.Fragment>
         ))}
 
         {transactions.length === 0 && (

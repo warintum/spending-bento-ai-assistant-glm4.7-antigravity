@@ -200,21 +200,189 @@ body {
   outline: none;
 }
 
-.chat-send-btn {
-  background: var(--accent-primary);
-  border: none;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+/* Neon Action Buttons */
+.action-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--card-border);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  color: var(--text-secondary);
 }
 
-.chat-send-btn:active {
-  transform: scale(0.9);
+.action-btn.edit:hover {
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+  background: rgba(45, 212, 191, 0.1);
+  box-shadow: 0 0 15px rgba(45, 212, 191, 0.4);
+  transform: translateY(-2px);
+}
+
+.action-btn.delete:hover {
+  color: var(--accent-secondary);
+  border-color: var(--accent-secondary);
+  background: rgba(251, 113, 133, 0.1);
+  box-shadow: 0 0 15px rgba(251, 113, 133, 0.4);
+  transform: translateY(-2px);
+}
+
+/* Inline Edit Area */
+.inline-edit-area {
+  background: rgba(45, 212, 191, 0.03);
+  border: 1px dashed var(--accent-primary);
+  border-radius: 20px;
+  padding: 16px;
+  margin-top: -8px;
+  margin-bottom: 8px;
+  grid-column: span 2;
+  animation: fadeIn 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inline-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.neon-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.neon-input {
+  background: rgba(10, 10, 12, 0.8);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  color: white;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  outline: none;
+  width: 100%;
+}
+
+.neon-input:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 10px rgba(45, 212, 191, 0.2);
+  background: rgba(45, 212, 191, 0.05);
+}
+
+/* Neon Toggle Switch */
+.neon-toggle-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.neon-toggle {
+  width: 100px;
+  height: 38px;
+  background: var(--bg-primary);
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  overflow: hidden;
+}
+
+.neon-toggle.income {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 10px rgba(45, 212, 191, 0.2);
+}
+
+.neon-toggle.expense {
+  border-color: var(--accent-secondary);
+  box-shadow: 0 0 10px rgba(251, 113, 133, 0.2);
+}
+
+.toggle-thumb {
+  width: 26px;
+  height: 26px;
+  background: white;
+  border-radius: 50%;
+  position: absolute;
+  transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  z-index: 2;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.income .toggle-thumb {
+  left: 6px;
+  background: var(--accent-primary);
+}
+
+.expense .toggle-thumb {
+  left: calc(100% - 32px);
+  background: var(--accent-secondary);
+}
+
+.toggle-label {
+  width: 100%;
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  z-index: 1;
+  transition: all 0.3s ease;
+}
+
+.income .toggle-label {
+  color: var(--accent-primary);
+  padding-left: 20px;
+}
+
+.expense .toggle-label {
+  color: var(--accent-secondary);
+  padding-right: 20px;
+}
+
+.neon-btn {
+  padding: 10px 20px;
+  border-radius: 12px;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
+.neon-btn.primary {
+  background: var(--accent-primary);
+  color: #000;
+  box-shadow: 0 4px 15px rgba(45, 212, 191, 0.3);
+}
+
+.neon-btn.primary:hover {
+  box-shadow: 0 0 20px rgba(45, 212, 191, 0.5);
+  transform: translateY(-1px);
+}
+
+.neon-btn.secondary {
+  background: transparent;
+  border: 1px solid var(--card-border);
+  color: var(--text-secondary);
+  padding: 10px 14px;
+}
+
+.neon-btn.secondary:hover {
+  border-color: white;
+  color: white;
 }
 
 /* Specific Bento Adjustment to avoid overlap with chat input */
