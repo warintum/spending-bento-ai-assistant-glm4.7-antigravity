@@ -13,7 +13,9 @@ import {
   Edit2,
   X,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Moon,
+  Sun
 } from 'lucide-react';
 import './index.css';
 
@@ -44,12 +46,25 @@ const App: React.FC = () => {
   const [chatInput, setChatInput] = useState('');
   const [viewAll, setViewAll] = useState(false);
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
+  const [theme, setTheme] = useState<'glass' | 'oled'>(() => {
+    return (localStorage.getItem('bento-theme') as 'glass' | 'oled') || 'glass';
+  });
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     localStorage.setItem('bento-transactions', JSON.stringify(transactions));
   }, [transactions]);
+
+  useEffect(() => {
+    localStorage.setItem('bento-theme', theme);
+    const body = document.body;
+    if (theme === 'oled') {
+      body.classList.add('theme-oled');
+    } else {
+      body.classList.remove('theme-oled');
+    }
+  }, [theme]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -134,6 +149,10 @@ const App: React.FC = () => {
     setEditingTx(null);
   };
 
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'glass' ? 'oled' : 'glass');
+  };
+
   const displayedTransactions = viewAll ? transactions : transactions.slice(0, 5);
 
   return (
@@ -143,8 +162,18 @@ const App: React.FC = () => {
           <h1 className="text-xl">Spending</h1>
           <p className="text-xs">Bento AI Assistant</p>
         </div>
-        <div className="bento-card glass" style={{ padding: '10px' }}>
-          <Sparkles size={20} className="text-teal" />
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            className="action-btn edit"
+            style={{ padding: '8px 12px', gap: '6px' }}
+            onClick={toggleTheme}
+          >
+            {theme === 'glass' ? <Moon size={18} /> : <Sun size={18} />}
+            <span className="text-xs" style={{ fontWeight: 'bold' }}>{theme === 'glass' ? 'Glass' : 'OLED'}</span>
+          </button>
+          <div className="bento-card glass" style={{ padding: '10px' }}>
+            <Sparkles size={20} className="text-teal" />
+          </div>
         </div>
       </header>
 

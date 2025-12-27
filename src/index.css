@@ -12,6 +12,16 @@
   --card-glow: rgba(45, 212, 191, 0.1);
 
   --font-main: 'Inter', system-ui, -apple-system, sans-serif;
+  --glass-blur: blur(20px);
+}
+
+body.theme-oled {
+  --bg-primary: #000000;
+  --bg-secondary: #080808;
+  --bg-glass: rgba(255, 255, 255, 0.02);
+  --card-border: rgba(255, 255, 255, 0.05);
+  --glass-blur: none;
+  background-image: none;
 }
 
 * {
@@ -28,6 +38,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
   overflow-x: hidden;
+  transition: background-color 0.5s ease, color 0.5s ease;
 }
 
 #root {
@@ -53,7 +64,7 @@ body {
   padding: 20px;
   position: relative;
   overflow: hidden;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .bento-card:active {
@@ -61,10 +72,13 @@ body {
 }
 
 .bento-card.glass {
-  background: var(--bg-glass);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  /* Top highlight border for 3D effect */
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .bento-card.large {

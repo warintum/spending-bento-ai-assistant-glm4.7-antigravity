@@ -6,11 +6,11 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: true,
-    allowedHosts: ["p4173.doodee.cc"]
+    allowedHosts: ["p4173.doodee.cc", "p5174.doodee.cc"]
   },
   preview: {
     host: true,
     port: 4173,
-    allowedHosts: ["p4173.doodee.cc"]
+    allowedHosts: ["p4173.doodee.cc", "p5174.doodee.cc"]
   }
 })
