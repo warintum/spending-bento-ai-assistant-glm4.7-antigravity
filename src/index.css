@@ -2,17 +2,21 @@
   --bg-primary: #0a0a0c;
   --bg-secondary: #16161a;
   --bg-glass: rgba(255, 255, 255, 0.05);
-  --accent-primary: #2dd4bf;
-  /* Teal */
+  --accent-primary: #c1c4c3;
+  /* User Silver Accent */
   --accent-secondary: #fb7185;
-  /* Coral */
   --text-primary: #ffffff;
   --text-secondary: #94a3b8;
   --card-border: rgba(255, 255, 255, 0.1);
-  --card-glow: rgba(45, 212, 191, 0.1);
+  --card-glow: rgba(193, 196, 195, 0.1);
 
   --font-main: 'Inter', system-ui, -apple-system, sans-serif;
-  --glass-blur: blur(20px);
+  --glass-blur: 20px;
+
+  /* User Customization Variables */
+  --user-bg: none;
+  --user-blur: 20px;
+  --user-opacity: 0.12;
 }
 
 * {
@@ -23,20 +27,21 @@
 
 body {
   background-color: var(--bg-primary);
-  /* Bento Grid Background Pattern - Essential for Glass visibility */
+  /* Bento Grid Background + User BG Image support */
   background-image:
+    var(--user-bg),
     radial-gradient(at 50% 0%, rgba(45, 212, 191, 0.08) 0px, transparent 50%),
     linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-  background-size: 100% 100%, 30px 30px, 30px 30px;
+  background-size: cover, 100% 100%, 30px 30px, 30px 30px;
+  background-position: center;
   background-attachment: fixed;
   color: var(--text-primary);
   font-family: var(--font-main);
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
   overflow-x: hidden;
-  transition: all 0.5s ease;
+  transition: background-color 0.5s ease;
 }
 
 body.theme-oled {
@@ -44,23 +49,18 @@ body.theme-oled {
   --bg-secondary: #080808;
   --bg-glass: rgba(255, 255, 255, 0.02);
   --card-border: rgba(255, 255, 255, 0.05);
-  --glass-blur: none;
+  --user-blur: 0px;
   background-image: none;
-  /* Pure OLED Black */
 }
 
 body.theme-neon {
   --bg-primary: #050505;
   --bg-secondary: #0a0a0c;
   --accent-primary: #00ffcc;
-  /* Cyber Teal */
   --accent-secondary: #ff0066;
-  /* Cyber Pink */
   --card-border: rgba(0, 255, 204, 0.3);
   --card-glow: rgba(0, 255, 204, 0.2);
-  --text-primary: #ffffff;
   --text-secondary: #00ffcc;
-  --glass-blur: blur(8px);
 }
 
 body.theme-neon .bento-card {
@@ -82,17 +82,16 @@ body.theme-neon .bento-card {
 #root {
   width: 100%;
   max-width: 500px;
-  /* Mobile focused container */
   margin: 0 auto;
   padding: 20px;
 }
 
-/* Bento Grid System */
 .bento-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   grid-gap: 16px;
   width: 100%;
+  padding-bottom: 40px;
 }
 
 .bento-card {
@@ -105,23 +104,15 @@ body.theme-neon .bento-card {
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.bento-card:active {
-  transform: scale(0.98);
-}
-
 .bento-card.glass {
-  background: linear-gradient(165deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.02));
-  backdrop-filter: var(--glass-blur) saturate(180%) brightness(1.2);
-  -webkit-backdrop-filter: var(--glass-blur) saturate(180%) brightness(1.2);
+  background: linear-gradient(165deg, rgba(255, 255, 255, var(--user-opacity)), rgba(255, 255, 255, 0.02));
+  backdrop-filter: blur(var(--user-blur)) saturate(180%) brightness(1.1);
+  -webkit-backdrop-filter: blur(var(--user-blur)) saturate(180%) brightness(1.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow:
-    0 10px 40px -10px rgba(0, 0, 0, 0.7),
-    inset 0 1px 1px rgba(255, 255, 255, 0.1);
-  /* Top highlight border for 3D effect */
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.7);
   border-top: 1.5px solid rgba(255, 255, 255, 0.4);
 }
 
-/* Texture overlay for Glass cards to add "grain" */
 .bento-card.glass::before {
   content: "";
   position: absolute;
@@ -130,7 +121,7 @@ body.theme-neon .bento-card {
   right: 0;
   bottom: 0;
   background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-  opacity: 0.03;
+  opacity: 0.02;
   pointer-events: none;
 }
 
@@ -142,7 +133,7 @@ body.theme-neon .bento-card {
   box-shadow: 0 0 20px var(--card-glow);
 }
 
-/* Typography styles */
+/* Typography */
 .text-xs {
   font-size: 0.75rem;
   color: var(--text-secondary);
@@ -188,21 +179,107 @@ body.theme-neon .bento-card {
   }
 }
 
-@keyframes slideUp {
-  from {
-    transform: translateY(100%);
-  }
-
-  to {
-    transform: translateY(0);
-  }
-}
-
 .fade-in {
   animation: fadeIn 0.5s ease forwards;
 }
 
-/* Chat Component Styles */
+/* Settings Modal Styles - COMPLETELY CLEAR OVERLAY */
+.settings-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  /* No more dark curtain */
+  backdrop-filter: none;
+  /* No more background blur */
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+.settings-card {
+  width: 100%;
+  max-width: 420px;
+  /* Premium Glass with deep shadows for separation */
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.15), rgba(0, 0, 0, 0.5));
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-top: 1.5px solid rgba(255, 255, 255, 0.4);
+  border-radius: 32px;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.9);
+  color: white;
+}
+
+.setting-item {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.setting-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: var(--accent-primary);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+.bg-presets {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.preset-btn {
+  height: 48px;
+  border-radius: 14px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  background-size: cover;
+  background-position: center;
+  transition: all 0.2s ease;
+  background-color: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.preset-btn.active {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+}
+
+/* Chat Styles */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -215,7 +292,7 @@ body.theme-neon .bento-card {
 .chat-container {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .message {
@@ -223,7 +300,6 @@ body.theme-neon .bento-card {
   padding: 12px 16px;
   border-radius: 18px;
   font-size: 0.9rem;
-  line-height: 1.4;
 }
 
 .message.user {
@@ -237,24 +313,24 @@ body.theme-neon .bento-card {
   align-self: flex-start;
   background: var(--bg-secondary);
   border: 1px solid var(--card-border);
-  color: var(--text-primary);
   border-bottom-left-radius: 4px;
 }
 
+/* Keep specific glass for chat bot in glass mode */
+body:not(.theme-oled):not(.theme-neon) .message.bot {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+}
+
 .chat-input-wrapper {
-  background: rgba(45, 212, 191, 0.05);
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 20px;
   padding: 4px 16px;
   display: flex;
   align-items: center;
   gap: 12px;
-  border: 1px solid rgba(45, 212, 191, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   margin-top: 12px;
-  transition: border-color 0.3s ease;
-}
-
-.chat-input-wrapper:focus-within {
-  border-color: var(--accent-primary);
 }
 
 .chat-input {
@@ -263,7 +339,6 @@ body.theme-neon .bento-card {
   border: none;
   color: white;
   padding: 12px 0;
-  font-size: 1rem;
   outline: none;
 }
 
@@ -277,59 +352,28 @@ body.theme-neon .bento-card {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  box-shadow: 0 0 10px rgba(45, 212, 191, 0.3);
 }
 
-.chat-send-btn:hover {
-  box-shadow: 0 0 20px rgba(45, 212, 191, 0.6);
-  transform: scale(1.1);
-}
-
-.chat-send-btn:active {
-  transform: scale(0.9);
-}
-
-/* Neon Action Buttons */
+/* Action Buttons */
 .action-btn {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--card-border);
-  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 8px;
   border-radius: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  color: var(--text-secondary);
 }
 
-.action-btn.edit:hover {
-  color: var(--accent-primary);
-  border-color: var(--accent-primary);
-  background: rgba(45, 212, 191, 0.1);
-  box-shadow: 0 0 15px rgba(45, 212, 191, 0.4);
-  transform: translateY(-2px);
-}
-
-.action-btn.delete:hover {
-  color: var(--accent-secondary);
-  border-color: var(--accent-secondary);
-  background: rgba(251, 113, 133, 0.1);
-  box-shadow: 0 0 15px rgba(251, 113, 133, 0.4);
-  transform: translateY(-2px);
-}
-
-/* Inline Edit Area */
+/* Inline Edit */
 .inline-edit-area {
-  background: rgba(45, 212, 191, 0.03);
+  background: rgba(45, 212, 191, 0.02);
   border: 1px dashed var(--accent-primary);
   border-radius: 20px;
   padding: 16px;
-  margin-top: -8px;
-  margin-bottom: 8px;
   grid-column: span 2;
-  animation: fadeIn 0.3s ease;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -341,81 +385,48 @@ body.theme-neon .bento-card {
   align-items: flex-end;
 }
 
-.neon-input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
 .neon-input {
-  background: rgba(10, 10, 12, 0.8);
+  background: rgba(0, 0, 0, 0.5);
   border: 1px solid var(--card-border);
   border-radius: 12px;
-  padding: 10px 14px;
+  padding: 10px;
   color: white;
-  font-size: 0.9rem;
-  transition: all 0.3s ease;
-  outline: none;
   width: 100%;
-}
-
-.neon-input:focus {
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 10px rgba(45, 212, 191, 0.2);
-  background: rgba(45, 212, 191, 0.05);
-}
-
-/* Neon Toggle Switch */
-.neon-toggle-container {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
 }
 
 .neon-toggle {
   width: 100px;
   height: 38px;
-  background: var(--bg-primary);
-  border: 1px solid var(--card-border);
   border-radius: 20px;
+  background: #000;
+  border: 1px solid var(--card-border);
   position: relative;
-  cursor: pointer;
-  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   padding: 0 6px;
-  overflow: hidden;
-}
-
-.neon-toggle.income {
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 10px rgba(45, 212, 191, 0.2);
-}
-
-.neon-toggle.expense {
-  border-color: var(--accent-secondary);
-  box-shadow: 0 0 10px rgba(251, 113, 133, 0.2);
+  cursor: pointer;
 }
 
 .toggle-thumb {
   width: 26px;
   height: 26px;
-  background: white;
   border-radius: 50%;
+  background: #fff;
   position: absolute;
-  transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  z-index: 2;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  transition: 0.3s;
 }
 
-.income .toggle-thumb {
+.toggle-thumb {
   left: 6px;
-  background: var(--accent-primary);
 }
 
 .expense .toggle-thumb {
-  left: calc(100% - 32px);
+  left: 68px;
   background: var(--accent-secondary);
+}
+
+.income .toggle-thumb {
+  background: var(--accent-primary);
 }
 
 .toggle-label {
@@ -423,19 +434,6 @@ body.theme-neon .bento-card {
   text-align: center;
   font-size: 0.7rem;
   font-weight: 800;
-  text-transform: uppercase;
-  z-index: 1;
-  transition: all 0.3s ease;
-}
-
-.income .toggle-label {
-  color: var(--accent-primary);
-  padding-left: 20px;
-}
-
-.expense .toggle-label {
-  color: var(--accent-secondary);
-  padding-right: 20px;
 }
 
 .neon-btn {
@@ -444,38 +442,15 @@ body.theme-neon .bento-card {
   border: none;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 0.85rem;
 }
 
 .neon-btn.primary {
   background: var(--accent-primary);
   color: #000;
-  box-shadow: 0 4px 15px rgba(45, 212, 191, 0.3);
-}
-
-.neon-btn.primary:hover {
-  box-shadow: 0 0 20px rgba(45, 212, 191, 0.5);
-  transform: translateY(-1px);
 }
 
 .neon-btn.secondary {
   background: transparent;
   border: 1px solid var(--card-border);
-  color: var(--text-secondary);
-  padding: 10px 14px;
-}
-
-.neon-btn.secondary:hover {
-  border-color: white;
   color: white;
-}
-
-/* Specific Bento Adjustment to avoid overlap with chat input */
-.bento-grid {
-  padding-bottom: 40px;
 }
