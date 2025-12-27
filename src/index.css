@@ -15,6 +15,95 @@
   --glass-blur: blur(20px);
 }
 
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-primary);
+  /* Mesh Gradient for Glass Visibility */
+  background-image:
+    radial-gradient(at 0% 0%, rgba(45, 212, 191, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(251, 113, 133, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(45, 212, 191, 0.1) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(251, 113, 133, 0.1) 0px, transparent 50%);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Glass Blobs Background */
+.glass-blobs {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  z-index: -1;
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+}
+
+body.theme-oled .glass-blobs {
+  opacity: 0;
+}
+
+.blob {
+  position: absolute;
+  filter: blur(80px);
+  border-radius: 50%;
+  opacity: 0.5;
+  animation: blob-float 20s infinite alternate;
+}
+
+.blob-1 {
+  width: 400px;
+  height: 400px;
+  background: rgba(45, 212, 191, 0.2);
+  top: -100px;
+  right: -100px;
+}
+
+.blob-2 {
+  width: 350px;
+  height: 350px;
+  background: rgba(251, 113, 133, 0.2);
+  bottom: 10%;
+  left: -100px;
+  animation-delay: -5s;
+}
+
+.blob-3 {
+  width: 300px;
+  height: 300px;
+  background: rgba(45, 212, 191, 0.15);
+  top: 40%;
+  right: 20%;
+  animation-delay: -10s;
+}
+
+@keyframes blob-float {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+
+  100% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+}
+
 body.theme-oled {
   --bg-primary: #000000;
   --bg-secondary: #080808;
@@ -24,21 +113,34 @@ body.theme-oled {
   background-image: none;
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+body.theme-neon {
+  --bg-primary: #050505;
+  --bg-secondary: #0a0a0c;
+  --accent-primary: #00ffcc;
+  /* Cyber Teal */
+  --accent-secondary: #ff0066;
+  /* Cyber Pink */
+  --card-border: rgba(0, 255, 204, 0.3);
+  --card-glow: rgba(0, 255, 204, 0.2);
+  --text-primary: #ffffff;
+  --text-secondary: #00ffcc;
+  --glass-blur: blur(8px);
 }
 
-body {
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  font-family: var(--font-main);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  min-height: 100vh;
-  overflow-x: hidden;
-  transition: background-color 0.5s ease, color 0.5s ease;
+body.theme-neon .bento-card {
+  border: 1px solid var(--accent-primary);
+  box-shadow: 0 0 15px var(--card-glow), inset 0 0 5px var(--card-glow);
+  animation: neon-pulse 4s infinite alternate;
+}
+
+@keyframes neon-pulse {
+  0% {
+    box-shadow: 0 0 10px var(--card-glow), inset 0 0 2px var(--card-glow);
+  }
+
+  100% {
+    box-shadow: 0 0 25px var(--card-glow), inset 0 0 10px var(--card-glow);
+  }
 }
 
 #root {
@@ -76,7 +178,7 @@ body {
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
   /* Top highlight border for 3D effect */
   border-top: 1px solid rgba(255, 255, 255, 0.3);
 }

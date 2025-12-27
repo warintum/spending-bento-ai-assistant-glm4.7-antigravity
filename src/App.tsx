@@ -46,8 +46,8 @@ const App: React.FC = () => {
   const [chatInput, setChatInput] = useState('');
   const [viewAll, setViewAll] = useState(false);
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
-  const [theme, setTheme] = useState<'glass' | 'oled'>(() => {
-    return (localStorage.getItem('bento-theme') as 'glass' | 'oled') || 'glass';
+  const [theme, setTheme] = useState<'glass' | 'oled' | 'neon'>(() => {
+    return (localStorage.getItem('bento-theme') as 'glass' | 'oled' | 'neon') || 'glass';
   });
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -59,11 +59,9 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('bento-theme', theme);
     const body = document.body;
-    if (theme === 'oled') {
-      body.classList.add('theme-oled');
-    } else {
-      body.classList.remove('theme-oled');
-    }
+    body.classList.remove('theme-oled', 'theme-neon');
+    if (theme === 'oled') body.classList.add('theme-oled');
+    if (theme === 'neon') body.classList.add('theme-neon');
   }, [theme]);
 
   useEffect(() => {
@@ -84,7 +82,6 @@ const App: React.FC = () => {
     .reduce((acc, curr) => acc + curr.amount, 0);
 
   const parseNaturalLanguage = (text: string) => {
-    // Basic NLP-like parsing for Thai
     const amountMatch = text.match(/[\d,]+/);
     const amount = amountMatch ? parseFloat(amountMatch[0].replace(/,/g, '')) : 0;
 
@@ -96,7 +93,6 @@ const App: React.FC = () => {
       type = 'income';
     }
 
-    // Clean note: remove amount and keywords
     let note = text.replace(/[\d,]+/g, '').replace(/บาท|บ./g, '').trim();
     if (!note) note = type === 'income' ? 'รายรับเพิ่มขึ้น' : 'รายจ่ายใหม่';
 
@@ -105,12 +101,9 @@ const App: React.FC = () => {
 
   const handleSendMessage = () => {
     if (!chatInput.trim()) return;
-
     const userMsg: Message = { id: Date.now().toString(), text: chatInput, sender: 'user' };
     setMessages(prev => [...prev, userMsg]);
-
     const parsed = parseNaturalLanguage(chatInput);
-
     if (parsed) {
       const newTx: Transaction = {
         id: (Date.now() + 1).toString(),
@@ -120,9 +113,7 @@ const App: React.FC = () => {
         date: new Date().toLocaleDateString('th-TH'),
         note: parsed.note
       };
-
       setTransactions([newTx, ...transactions]);
-
       const botMsg: Message = {
         id: (Date.now() + 2).toString(),
         text: `บันทึก${parsed.type === 'income' ? 'รายรับ' : 'รายจ่าย'} ${parsed.amount.toLocaleString()} บาท เรียบร้อยแล้วครับ! ✅`,
@@ -133,7 +124,6 @@ const App: React.FC = () => {
       const botMsg: Message = { id: (Date.now() + 2).toString(), text: 'ขอโทษครับ ลองพิมพ์เป็น "ค่าอาหาร 50" นะครับ', sender: 'bot' };
       setMessages(prev => [...prev, botMsg]);
     }
-
     setChatInput('');
   };
 
@@ -150,14 +140,30 @@ const App: React.FC = () => {
   };
 
   const toggleTheme = () => {
-    setTheme(prev => prev === 'glass' ? 'oled' : 'glass');
+    setTheme(prev => {
+      if (prev === 'glass') return 'oled';
+      if (prev === 'oled') return 'neon';
+      return 'glass';
+    });
   };
 
   const displayedTransactions = viewAll ? transactions : transactions.slice(0, 5);
 
+  const getThemeLabel = () => {
+    if (theme === 'glass') return 'Glass';
+    if (theme === 'oled') return 'OLED';
+    return 'Neon';
+  };
+
+  const getThemeIcon = () => {
+    if (theme === 'glass') return <Moon size={18} />;
+    if (theme === 'oled') return <Sun size={18} />;
+    return <Sparkles size={18} />;
+  };
+
   return (
     <div className="fade-in">
-      <header style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <header style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 10 }}>
         <div>
           <h1 className="text-xl">Spending</h1>
           <p className="text-xs">Bento AI Assistant</p>
@@ -168,8 +174,8 @@ const App: React.FC = () => {
             style={{ padding: '8px 12px', gap: '6px' }}
             onClick={toggleTheme}
           >
-            {theme === 'glass' ? <Moon size={18} /> : <Sun size={18} />}
-            <span className="text-xs" style={{ fontWeight: 'bold' }}>{theme === 'glass' ? 'Glass' : 'OLED'}</span>
+            {getThemeIcon()}
+            <span className="text-xs" style={{ fontWeight: 'bold' }}>{getThemeLabel()}</span>
           </button>
           <div className="bento-card glass" style={{ padding: '10px' }}>
             <Sparkles size={20} className="text-teal" />
