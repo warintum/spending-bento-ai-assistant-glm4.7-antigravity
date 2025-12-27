@@ -200,6 +200,29 @@ body {
   outline: none;
 }
 
+.chat-send-btn {
+  background: var(--accent-primary);
+  border: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 0 10px rgba(45, 212, 191, 0.3);
+}
+
+.chat-send-btn:hover {
+  box-shadow: 0 0 20px rgba(45, 212, 191, 0.6);
+  transform: scale(1.1);
+}
+
+.chat-send-btn:active {
+  transform: scale(0.9);
+}
+
 /* Neon Action Buttons */
 .action-btn {
   background: rgba(255, 255, 255, 0.03);
