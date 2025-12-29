@@ -64,8 +64,8 @@ const App: React.FC = () => {
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  const [theme, setTheme] = useState<'glass' | 'oled' | 'neon'>(() => {
-    return (localStorage.getItem('bento-theme') as 'glass' | 'oled' | 'neon') || 'glass';
+  const [theme, setTheme] = useState<'glass' | 'oled' | 'neon' | 'neon-orange' | 'neon-blue' | 'neon-red'>(() => {
+    return (localStorage.getItem('bento-theme') as 'glass' | 'oled' | 'neon' | 'neon-orange' | 'neon-blue' | 'neon-red') || 'glass';
   });
 
   const [blur, setBlur] = useState<number>(() => parseInt(localStorage.getItem('glass-blur') || '20'));
@@ -83,9 +83,8 @@ const App: React.FC = () => {
 
   useEffect(() => {
     localStorage.setItem('bento-theme', theme);
-    document.body.classList.remove('theme-oled', 'theme-neon');
-    if (theme === 'oled') document.body.classList.add('theme-oled');
-    if (theme === 'neon') document.body.classList.add('theme-neon');
+    document.body.classList.remove('theme-oled', 'theme-neon', 'theme-neon-orange', 'theme-neon-blue', 'theme-neon-red');
+    if (theme !== 'glass') document.body.classList.add(`theme-${theme}`);
   }, [theme]);
 
   useEffect(() => {
@@ -125,7 +124,7 @@ const App: React.FC = () => {
     .reduce((acc, curr) => acc + curr.amount, 0);
 
   const parseNaturalLanguage = (text: string) => {
-    const amountMatch = text.match(/[\d,]+/);
+    const amountMatch = text.match(/[\d,.]+/);
     const amount = amountMatch ? parseFloat(amountMatch[0].replace(/,/g, '')) : 0;
     if (amount === 0) return null;
     let type: 'income' | 'expense' = 'expense';
@@ -207,11 +206,9 @@ const App: React.FC = () => {
   };
 
   const toggleTheme = () => {
-    setTheme(prev => {
-      if (prev === 'glass') return 'oled';
-      if (prev === 'oled') return 'neon';
-      return 'glass';
-    });
+    const themes: ('glass' | 'oled' | 'neon' | 'neon-orange' | 'neon-blue' | 'neon-red')[] = ['glass', 'oled', 'neon', 'neon-orange', 'neon-blue', 'neon-red'];
+    const nextIndex = (themes.indexOf(theme) + 1) % themes.length;
+    setTheme(themes[nextIndex]);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -347,23 +344,23 @@ const App: React.FC = () => {
       <div className="bento-grid">
         <div className={`${cardClass} large glow`}>
           <p className="text-xs">ยอดเงินคงเหลือ</p>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '4px' }}>
-            <span className="text-huge">฿{totalBalance.toLocaleString()}</span>
-            <span className="text-xs text-teal">.00</span>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginTop: '4px' }}>
+            <span className="text-huge">{totalBalance < 0 ? '-' : ''}฿{Math.floor(Math.abs(totalBalance)).toLocaleString()}</span>
+            <span className="text-base text-teal">.{(Math.abs(totalBalance) % 1).toFixed(2).split('.')[1]}</span>
           </div>
-          <Wallet size={24} style={{ position: 'absolute', top: '20px', right: '20px', opacity: 0.2 }} />
+          <Wallet size={24} className="text-teal" style={{ position: 'absolute', top: '20px', right: '20px', opacity: 0.8 }} />
         </div>
 
         <div className={cardClass}>
           <TrendingUp size={24} className="text-teal" />
           <p className="text-xs" style={{ marginTop: '12px' }}>รายรับ</p>
-          <p className="text-lg">฿{totalIncome.toLocaleString()}</p>
+          <p className="text-lg">฿{totalIncome.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
         </div>
 
         <div className={cardClass}>
           <TrendingDown size={24} className="text-coral" />
           <p className="text-xs" style={{ marginTop: '12px' }}>รายจ่าย</p>
-          <p className="text-lg">฿{totalExpense.toLocaleString()}</p>
+          <p className="text-lg">฿{totalExpense.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
         </div>
 
         <div className={`${cardClass} large`} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -419,7 +416,7 @@ const App: React.FC = () => {
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <p className={`text-lg ${tx.type === 'income' ? 'text-teal' : 'text-coral'}`}>{tx.type === 'income' ? '+' : '-'}฿{tx.amount.toLocaleString()}</p>
+                <p className={`text-lg ${tx.type === 'income' ? 'text-teal' : 'text-coral'}`}>{tx.type === 'income' ? '+' : '-'}฿{tx.amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button className="action-btn edit" onClick={() => setEditingTx(editingTx?.id === tx.id ? null : tx)}><Edit2 size={16} /></button>
                   <button className="action-btn delete" onClick={() => deleteTransaction(tx.id)}><Trash2 size={16} /></button>
@@ -477,7 +474,7 @@ const App: React.FC = () => {
                 <div className="inline-row">
                   <div className="neon-input-group" style={{ flex: 1 }}>
                     <label className="text-xs">จำนวนเงิน (฿)</label>
-                    <input type="number" className="neon-input" value={editingTx.amount} onChange={e => setEditingTx({ ...editingTx, amount: parseFloat(e.target.value) || 0 })} />
+                    <input type="number" step="any" className="neon-input" value={editingTx.amount} onChange={e => setEditingTx({ ...editingTx, amount: parseFloat(e.target.value) || 0 })} />
                   </div>
                   <div className="neon-input-group" style={{ flex: 1 }}>
                     <label className="text-xs">บันทึกช่วยจำ</label>

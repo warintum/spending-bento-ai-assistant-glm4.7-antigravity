@@ -85,7 +85,40 @@ body.theme-neon {
   --text-secondary: #00ffcc;
 }
 
-body.theme-neon .bento-card {
+body.theme-neon-orange {
+  --bg-primary: #050505;
+  --bg-secondary: #0a0a0c;
+  --accent-primary: #ff9500;
+  --accent-secondary: #ffffff;
+  --card-border: rgba(255, 149, 0, 0.3);
+  --card-glow: rgba(255, 149, 0, 0.2);
+  --text-secondary: #ff9500;
+}
+
+body.theme-neon-blue {
+  --bg-primary: #050505;
+  --bg-secondary: #0a0a0c;
+  --accent-primary: #007aff;
+  --accent-secondary: #ffffff;
+  --card-border: rgba(0, 122, 255, 0.3);
+  --card-glow: rgba(0, 122, 255, 0.2);
+  --text-secondary: #007aff;
+}
+
+body.theme-neon-red {
+  --bg-primary: #050505;
+  --bg-secondary: #0a0a0c;
+  --accent-primary: #ff3b30;
+  --accent-secondary: #ffffff;
+  --card-border: rgba(255, 59, 48, 0.3);
+  --card-glow: rgba(255, 59, 48, 0.2);
+  --text-secondary: #ff3b30;
+}
+
+body.theme-neon .bento-card,
+body.theme-neon-orange .bento-card,
+body.theme-neon-blue .bento-card,
+body.theme-neon-red .bento-card {
   border: 1px solid var(--accent-primary);
   box-shadow: 0 0 15px var(--card-glow), inset 0 0 5px var(--card-glow);
   animation: neon-pulse 4s infinite alternate;
