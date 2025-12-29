@@ -628,7 +628,7 @@ const App: React.FC = () => {
                       {tx.category}
                     </span>
                   </p>
-                  <p className="text-xs">{tx.date}</p>
+                  <p style={{ fontSize: '0.6rem', opacity: 0.5 }}>{tx.date}</p>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
