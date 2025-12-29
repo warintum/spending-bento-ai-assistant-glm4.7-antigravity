@@ -17,7 +17,10 @@ import {
   Sun,
   Settings,
   Upload,
+  Download,
+  FileUp,
   Utensils,
+
   Car,
   Package,
   Users,
@@ -76,6 +79,92 @@ const App: React.FC = () => {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const importFileRef = useRef<HTMLInputElement>(null);
+
+  const exportToCSV = () => {
+    if (transactions.length === 0) {
+      alert('ไม่มีข้อมูลให้ส่งออกครับ');
+      return;
+    }
+    // Headers for CSV
+    const headers = ['id', 'date', 'category', 'note', 'type', 'amount'];
+
+    // Create CSV content (using standard format for easier re-import)
+    const csvRows = transactions.map(tx => {
+      return [
+        tx.id,
+        tx.date,
+        `"${tx.category.replace(/"/g, '""')}"`,
+        `"${tx.note.replace(/"/g, '""')}"`,
+        tx.type,
+        tx.amount
+      ].join(',');
+    });
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...csvRows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `bento_backup_${new Date().toLocaleDateString('th-TH').replace(/\//g, '-')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        if (file.name.endsWith('.json')) {
+          const imported = JSON.parse(text);
+          if (Array.isArray(imported)) {
+            setTransactions([...imported, ...transactions].filter((v, i, a) => a.findIndex(t => t.id === v.id) === i));
+            alert('นำเข้าข้อมูลเรียบร้อยแล้วครับ');
+          }
+        } else if (file.name.endsWith('.csv')) {
+          // Simple CSV Parser
+          const lines = text.split('\n').filter(l => l.trim());
+          // Using line 0 to validate headers if needed, but for now just skip it
+
+
+          const importedTx: Transaction[] = lines.slice(1).map(line => {
+            // Regex to handle quoted values with commas
+            const values = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+            if (!values || values.length < 6) return null;
+
+            const clean = (val: string) => val.startsWith('"') && val.endsWith('"') ? val.slice(1, -1).replace(/""/g, '"') : val;
+
+            return {
+              id: clean(values[0]),
+              date: clean(values[1]),
+              category: clean(values[2]),
+              note: clean(values[3]),
+              type: clean(values[4]) as 'income' | 'expense',
+              amount: parseFloat(clean(values[5])) || 0
+            };
+          }).filter(t => t !== null) as Transaction[];
+
+          if (importedTx.length > 0) {
+            // Merge and remove duplicates by ID
+            const merged = [...importedTx, ...transactions];
+            const unique = merged.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
+            setTransactions(unique);
+            alert(`นำเข้าข้อมูล ${importedTx.length} รายการเรียบร้อยแล้วครับ`);
+          }
+        }
+      } catch (err) {
+        alert('เกิดข้อผิดพลาดในการนำเข้าไฟล์ครับ');
+        console.error(err);
+      }
+      if (importFileRef.current) importFileRef.current.value = '';
+    };
+    reader.readAsText(file);
+  };
 
   useEffect(() => {
     localStorage.setItem('bento-transactions', JSON.stringify(transactions));
@@ -149,12 +238,12 @@ const App: React.FC = () => {
       'ของใช้ในบ้าน': ['เฟอร์นิเจอร์', 'ตกแต่ง', 'เครื่องครัว', 'ซ่อมบ้าน', 'หลอดไฟ', 'เครื่องซักผ้า', 'ตู้เย็น', 'พัดลม', 'แอร์'],
       'ท่องเที่ยว': ['โรงแรม', 'ทริป', 'ทัวร์', 'ต่างประเทศ', 'ทะเล', 'พักร้อน', 'รีสอร์ท', 'ตั๋วเครื่องบิน', 'ตั๋วรถไฟ'],
       'การศึกษา': ['เรียน', 'คอร์ส', 'หนังสือ', 'ติว', 'มหาวิทยาลัย', 'เทอม', 'กวดวิชา', 'เครื่องเขียน', 'อบรม'],
-      'สินเชื่อ บัตรเครดิต': ['บัตรเครดิต', 'สินเชื่อ', 'งวด', 'ดอกเบี้ย', 'จ่ายบัตร', 'กู้', 'ผ่อนรถ', 'ผ่อนบ้าน'],
+      'สินเชื่อ บัตรเครดิต': ['บัตรเครดิต', 'สินเชื่อ', 'งวด', 'ดอกเบี้ย', 'จ่ายบัตร', 'กู้', 'ผ่อนรถ', 'ผ่อนบ้าน', 'ส่งบ้าน'],
       'ค่าโทรศัพท์': ['โทรศัพท์', 'มือถือ', 'รายเดือน', 'เติมเงิน', 'เน็ตมือถือ', 'AIS', 'True', 'DTAC'],
       'บันเทิง': ['หนัง', 'ดูหนัง', 'คอนเสิร์ต', 'เกม', 'เติมเกม', 'ปาร์ตี้', 'เหล้า', 'เบียร์', 'คาราโอเกะ', 'Netflix', 'Spotify', 'Youtube Premium'],
       'งาน': ['อุปกรณ์ทำงาน', 'ภาษี', 'สัมมนา', 'ธุรกิจ', 'ลงทุนงาน', 'สตาฟ', 'เลขา'],
-      'เงินออม': ['ออมเงิน', 'กองทุน', 'หุ้น', 'ทอง', 'เงินฝาก', 'เก็บเงิน', 'ประกันชีวิต', 'SSF', 'RMF'],
-      'ช็อปปิ้ง': ['ซื้อ', 'เสื้อ', 'กางเกง', 'รองเท้า', 'ของใช้', 'ห้าง', 'Lazada', 'Shopee', 'ไดโซะ', 'เครื่องสำอาง', 'น้ำหอม']
+      'เงินออม': ['ออมเงิน', 'กองทุน', 'หุ้น', 'ทอง', 'เงินฝาก', 'เก็บเงิน', 'ประกันชีวิต', 'SSF', 'RMF', 'เทรด'],
+      'ช็อปปิ้ง': ['ซื้อ', 'เสื้อ', 'กางเกง', 'รองเท้า', 'ของใช้', 'ห้าง', 'Lazada', 'Shopee', 'ลาซาด้า', 'ช้อปปี้', 'ชอปปี้', 'ไดโซะ', 'เครื่องสำอาง', 'น้ำหอม']
     };
 
     if (type === 'expense') {
@@ -185,7 +274,7 @@ const App: React.FC = () => {
       setTransactions([newTx, ...transactions]);
       const botMsg: Message = {
         id: (Date.now() + 2).toString(),
-        text: `บันทึก${parsed.type === 'income' ? 'รายรับ' : 'รายจ่าย'} ${parsed.amount.toLocaleString()} บาท เรียบร้อยแล้วครับ! ✅`,
+        text: `บันทึก${parsed.type === 'income' ? 'รายรับ' : 'รายจ่าย'} ${parsed.amount.toLocaleString()} บาท ใน ${parsed.category} แล้วครับ! ✅`,
         sender: 'bot'
       };
       setMessages(prev => [...prev, botMsg]);
@@ -214,8 +303,8 @@ const App: React.FC = () => {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 1.5 * 1024 * 1024) {
-        alert('รูปภาพใหญ่เกินไปครับ (จำกัด 1.5MB)');
+      if (file.size > 5 * 1024 * 1024) {
+        alert('รูปภาพใหญ่เกินไปครับ (จำกัด 5MB)');
         return;
       }
       const reader = new FileReader();
@@ -336,7 +425,36 @@ const App: React.FC = () => {
                 )}
               </div>
             </div>
+            <div className="setting-item" style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px', marginTop: '10px' }}>
+              <label className="text-sm" style={{ display: 'block', marginBottom: '12px' }}>จัดการข้อมูล</label>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  className="action-btn"
+                  style={{ flex: 1, padding: '10px', height: 'auto', flexDirection: 'column', gap: '4px', fontSize: '0.7rem', border: '1px solid rgba(255,255,255,0.1)' }}
+                  onClick={exportToCSV}
+                >
+                  <Download size={20} />
+                  ส่งออกข้อมูล (CSV)
+                </button>
+                <button
+                  className="action-btn"
+                  style={{ flex: 1, padding: '10px', height: 'auto', flexDirection: 'column', gap: '4px', fontSize: '0.7rem', border: '1px solid rgba(255,255,255,0.1)' }}
+                  onClick={() => importFileRef.current?.click()}
+                >
+                  <FileUp size={20} />
+                  นำเข้าข้อมูล
+                </button>
+                <input
+                  type="file"
+                  ref={importFileRef}
+                  hidden
+                  accept=".csv,.json"
+                  onChange={handleImportData}
+                />
+              </div>
+            </div>
             <p className="text-xs" style={{ opacity: 0.5, fontStyle: 'italic' }}>* Settings only apply in Glass Mode</p>
+
           </div>
         </div>
       )}

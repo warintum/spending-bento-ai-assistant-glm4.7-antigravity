@@ -245,10 +245,11 @@ body.theme-neon-red .bento-card {
   left: 0;
   right: 0;
   bottom: 0;
-  background: transparent;
-  /* No more dark curtain */
-  backdrop-filter: none;
-  /* No more background blur */
+  background: rgba(0, 0, 0, 0);
+  /* Lighter dim for better glass feel */
+  backdrop-filter: blur(2px);
+  /* Stronger blur for separation instead of darkness */
+  -webkit-backdrop-filter: blur(2px);
   z-index: 9999;
   display: flex;
   align-items: center;
@@ -260,20 +261,24 @@ body.theme-neon-red .bento-card {
 .settings-card {
   width: 100%;
   max-width: 420px;
-  /* Premium Glass with deep shadows for separation */
-  background: linear-gradient(165deg, rgba(255, 255, 255, 0.15), rgba(0, 0, 0, 0.5));
-  backdrop-filter: blur(40px) saturate(200%);
-  -webkit-backdrop-filter: blur(40px) saturate(200%);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-top: 1.5px solid rgba(255, 255, 255, 0.4);
+  /* Refined Glass: Semi-transparent but with very high blur for readability */
+  background: rgba(20, 20, 25, 0.85);
+  backdrop-filter: blur(50px) saturate(210%);
+  -webkit-backdrop-filter: blur(50px) saturate(210%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 1.5px solid rgba(255, 255, 255, 0.25);
   border-radius: 32px;
   padding: 30px;
   display: flex;
   flex-direction: column;
   gap: 24px;
-  box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.9);
+  box-shadow:
+    0 30px 60px -12px rgba(0, 0, 0, 0.5),
+    0 18px 36px -18px rgba(0, 0, 0, 0.6),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
   color: white;
 }
+
 
 .setting-item {
   display: flex;
