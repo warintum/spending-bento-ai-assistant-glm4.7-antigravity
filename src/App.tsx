@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import Cropper, { type Area, type Point } from 'react-easy-crop';
 import {
   Wallet,
   TrendingUp,
@@ -66,6 +67,11 @@ const App: React.FC = () => {
   const [viewAll, setViewAll] = useState(false);
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isCropping, setIsCropping] = useState(false);
+  const [tempImage, setTempImage] = useState<string | null>(null);
+  const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
 
   const [theme, setTheme] = useState<'glass' | 'oled' | 'neon' | 'neon-orange' | 'neon-blue' | 'neon-red'>(() => {
     return (localStorage.getItem('bento-theme') as 'glass' | 'oled' | 'neon' | 'neon-orange' | 'neon-blue' | 'neon-red') || 'glass';
@@ -310,9 +316,59 @@ const App: React.FC = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64String = reader.result as string;
-        setBgImage(base64String);
+        setTempImage(base64String);
+        setIsCropping(true);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const onCropComplete = useCallback((_croppedArea: Area, croppedAreaPixels: Area) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
+
+  const createImage = (url: string): Promise<HTMLImageElement> =>
+    new Promise((resolve, reject) => {
+      const image = new Image();
+      image.addEventListener('load', () => resolve(image));
+      image.addEventListener('error', (error) => reject(error));
+      image.setAttribute('crossOrigin', 'anonymous');
+      image.src = url;
+    });
+
+  const getCroppedImg = async (imageSrc: string, pixelCrop: Area): Promise<string | null> => {
+    const image = await createImage(imageSrc);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) return null;
+
+    canvas.width = pixelCrop.width;
+    canvas.height = pixelCrop.height;
+
+    ctx.drawImage(
+      image,
+      pixelCrop.x,
+      pixelCrop.y,
+      pixelCrop.width,
+      pixelCrop.height,
+      0,
+      0,
+      pixelCrop.width,
+      pixelCrop.height
+    );
+
+    return canvas.toDataURL('image/jpeg');
+  };
+
+  const saveCroppedImage = async () => {
+    if (tempImage && croppedAreaPixels) {
+      const croppedImage = await getCroppedImg(tempImage, croppedAreaPixels);
+      if (croppedImage) {
+        setBgImage(croppedImage);
+        setIsCropping(false);
+        setTempImage(null);
+      }
     }
   };
 
@@ -455,6 +511,48 @@ const App: React.FC = () => {
             </div>
             <p className="text-xs" style={{ opacity: 0.5, fontStyle: 'italic' }}>* Settings only apply in Glass Mode</p>
 
+          </div>
+        </div>
+      )}
+
+      {isCropping && tempImage && (
+        <div className="cropper-overlay">
+          <div className="cropper-card">
+            <div className="setting-header">
+              <h3 className="text-lg">ตกแต่งรูปภาพ</h3>
+              <button className="action-btn" onClick={() => setIsCropping(false)}><X size={18} /></button>
+            </div>
+            <div className="cropper-container">
+              <Cropper
+                image={tempImage}
+                crop={crop}
+                zoom={zoom}
+                aspect={window.innerWidth / window.innerHeight}
+                onCropChange={setCrop}
+                onCropComplete={onCropComplete}
+                onZoomChange={setZoom}
+              />
+            </div>
+            <div className="cropper-controls">
+              <div className="setting-item" style={{ width: '100%', marginBottom: '20px' }}>
+                <div className="setting-header">
+                  <label className="text-sm">Zoom</label>
+                  <span className="text-xs">{zoom}x</span>
+                </div>
+                <input
+                  type="range"
+                  min={1}
+                  max={3}
+                  step={0.1}
+                  value={zoom}
+                  onChange={(e) => setZoom(parseFloat(e.target.value))}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
+                <button className="neon-btn secondary" style={{ flex: 1 }} onClick={() => setIsCropping(false)}>ยกเลิก</button>
+                <button className="neon-btn primary" style={{ flex: 1 }} onClick={saveCroppedImage}>บันทึกพื้นหลัง</button>
+              </div>
+            </div>
           </div>
         </div>
       )}

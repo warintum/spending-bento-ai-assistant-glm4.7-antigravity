@@ -43,6 +43,8 @@ body {
   overflow-x: hidden;
   position: relative;
   transition: background-color 0.5s ease;
+  overscroll-behavior: none;
+  /* Prevent elastic bounce on mobile */
 }
 
 /* Background Layer to allow independent blur/dim */
@@ -61,7 +63,7 @@ body::before {
     linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
   background-size: cover, 100% 100%, 30px 30px, 30px 30px;
   background-position: center;
-  background-attachment: fixed;
+  /* background-attachment: scroll is implicit; removing 'fixed' which is buggy on mobile */
   filter: blur(var(--user-bg-blur)) brightness(var(--user-bg-dim));
   transition: filter 0.3s ease;
 }
@@ -642,4 +644,51 @@ body:not(.theme-oled):not(.theme-neon) .message.bot {
 
 .cat-income {
   color: #35bb8e;
+}
+
+/* Cropper Modal Styles */
+.cropper-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+.cropper-card {
+  width: 100%;
+  max-width: 500px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--card-border);
+  border-radius: 32px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.5);
+}
+
+.cropper-container {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  background: #000;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.cropper-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
 }
