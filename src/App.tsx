@@ -16,7 +16,22 @@ import {
   Moon,
   Sun,
   Settings,
-  Upload
+  Upload,
+  Utensils,
+  Car,
+  Package,
+  Users,
+  HeartPulse,
+  Home,
+  Palmtree,
+  GraduationCap,
+  CreditCard,
+  Phone,
+  PlayCircle,
+  Briefcase,
+  Coins,
+  ShoppingBag,
+  MoreHorizontal
 } from 'lucide-react';
 import './index.css';
 
@@ -124,10 +139,38 @@ const App: React.FC = () => {
 
     if (incomeKeywords.some(k => text.includes(k))) type = 'income';
 
+    // AI Category Mapping
+    let category = type === 'income' ? 'รายได้' : 'อื่นๆ';
+    const categoryMap: { [key: string]: string[] } = {
+      'อาหารและเครื่องดื่ม': ['กิน', 'ข้าว', 'น้ำ', 'กาแฟ', 'อร่อย', 'ชา', 'ขนม', 'ส้มตำ', 'ก๋วยเตี๋ยว', 'บุฟเฟต์', 'บุฟเฟ่ต์', 'มื้อ', 'อาหาร', 'ค่าอาหาร', 'Grab', 'Lineman', 'Foodpanda', 'ShopeeFood', 'เซเว่น', 'คาเฟ่'],
+      'การเดินทาง': ['รถ', 'น้ำมัน', 'วิน', 'แท็กซี่', 'BTS', 'MRT', 'เรือ', 'ตั๋วเครื่องบิน', 'ทางด่วน', 'ที่จอดรถ', 'GrabCar', 'Bolt', 'ล้างรถ', 'ซ่อมรถ'],
+      'ของใช้จำเป็น': ['ทิชชู่', 'สบู่', 'ยาสีฟัน', 'ผงซักฟอก', 'ของแห้ง', 'ตลาด', 'ซุปเปอร์', 'ของใช้ส่วนตัว', 'ผ้าอนามัย', 'แชมพู'],
+      'ครอบครัว': ['ลูก', 'พ่อ', 'แม่', 'ภรรยา', 'สามี', 'ให้เงิน', 'กตัญญู', 'โรงเรียนลูก', 'ของเล่น', 'แพมเพิส', 'นมผง'],
+      'สุขภาพ': ['ยา', 'หมอ', 'โรงพยาบาล', 'คลินิก', 'วิตามิน', 'หมอฟัน', 'หาหมอ', 'ฟิตเนส', 'แว่นตา', 'ตรวจสุขภาพ'],
+      'ของใช้ในบ้าน': ['เฟอร์นิเจอร์', 'ตกแต่ง', 'เครื่องครัว', 'ซ่อมบ้าน', 'หลอดไฟ', 'เครื่องซักผ้า', 'ตู้เย็น', 'พัดลม', 'แอร์'],
+      'ท่องเที่ยว': ['โรงแรม', 'ทริป', 'ทัวร์', 'ต่างประเทศ', 'ทะเล', 'พักร้อน', 'รีสอร์ท', 'ตั๋วเครื่องบิน', 'ตั๋วรถไฟ'],
+      'การศึกษา': ['เรียน', 'คอร์ส', 'หนังสือ', 'ติว', 'มหาวิทยาลัย', 'เทอม', 'กวดวิชา', 'เครื่องเขียน', 'อบรม'],
+      'สินเชื่อ บัตรเครดิต': ['บัตรเครดิต', 'สินเชื่อ', 'งวด', 'ดอกเบี้ย', 'จ่ายบัตร', 'กู้', 'ผ่อนรถ', 'ผ่อนบ้าน'],
+      'ค่าโทรศัพท์': ['โทรศัพท์', 'มือถือ', 'รายเดือน', 'เติมเงิน', 'เน็ตมือถือ', 'AIS', 'True', 'DTAC'],
+      'บันเทิง': ['หนัง', 'ดูหนัง', 'คอนเสิร์ต', 'เกม', 'เติมเกม', 'ปาร์ตี้', 'เหล้า', 'เบียร์', 'คาราโอเกะ', 'Netflix', 'Spotify', 'Youtube Premium'],
+      'งาน': ['อุปกรณ์ทำงาน', 'ภาษี', 'สัมมนา', 'ธุรกิจ', 'ลงทุนงาน', 'สตาฟ', 'เลขา'],
+      'เงินออม': ['ออมเงิน', 'กองทุน', 'หุ้น', 'ทอง', 'เงินฝาก', 'เก็บเงิน', 'ประกันชีวิต', 'SSF', 'RMF'],
+      'ช็อปปิ้ง': ['ซื้อ', 'เสื้อ', 'กางเกง', 'รองเท้า', 'ของใช้', 'ห้าง', 'Lazada', 'Shopee', 'ไดโซะ', 'เครื่องสำอาง', 'น้ำหอม']
+    };
+
+    if (type === 'expense') {
+      for (const [cat, keywords] of Object.entries(categoryMap)) {
+        if (keywords.some(k => text.includes(k))) {
+          category = cat;
+          break;
+        }
+      }
+    }
+
     // Fix: Escape the dot in 'บ.' to match literal 'บ.' and not wildcard any character
     let note = text.replace(/[\d,]+/g, '').replace(/บาท|บ\./g, '').trim();
     if (!note) note = type === 'income' ? 'รายรับเพิ่มขึ้น' : 'รายจ่ายใหม่';
-    return { amount, type, note };
+    return { amount, type, note, category };
   };
 
   const handleSendMessage = () => {
@@ -138,7 +181,7 @@ const App: React.FC = () => {
     if (parsed) {
       const newTx: Transaction = {
         id: (Date.now() + 1).toString(), amount: parsed.amount, type: parsed.type,
-        category: 'Chat Input', date: new Date().toLocaleDateString('th-TH'), note: parsed.note
+        category: parsed.category, date: new Date().toLocaleDateString('th-TH'), note: parsed.note
       };
       setTransactions([newTx, ...transactions]);
       const botMsg: Message = {
@@ -209,7 +252,7 @@ const App: React.FC = () => {
     <div className="fade-in">
       <header style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 10 }}>
         <div>
-          <h1 className="text-xl">Spending</h1>
+          <h1 className="text-xl">Expense</h1>
           <p className="text-xs">Bento AI Assistant</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -357,7 +400,23 @@ const App: React.FC = () => {
                 <div style={{ padding: '8px', borderRadius: '10px', background: tx.type === 'income' ? 'rgba(45, 212, 191, 0.1)' : 'rgba(251, 113, 133, 0.1)' }}>
                   {tx.type === 'income' ? <ArrowUpRight size={18} className="text-teal" /> : <ArrowDownLeft size={18} className="text-coral" />}
                 </div>
-                <div><p className="text-sm">{tx.note}</p><p className="text-xs">{tx.date}</p></div>
+                <div>
+                  <p className="text-sm">
+                    {tx.note}
+                    <span style={{
+                      fontSize: '0.65rem',
+                      opacity: 0.6,
+                      background: 'rgba(255,255,255,0.08)',
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      marginLeft: '8px',
+                      border: '1px solid rgba(255,255,255,0.1)'
+                    }}>
+                      {tx.category}
+                    </span>
+                  </p>
+                  <p className="text-xs">{tx.date}</p>
+                </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <p className={`text-lg ${tx.type === 'income' ? 'text-teal' : 'text-coral'}`}>{tx.type === 'income' ? '+' : '-'}฿{tx.amount.toLocaleString()}</p>
@@ -377,15 +436,55 @@ const App: React.FC = () => {
                     </div>
                   </div>
                   <div className="neon-input-group" style={{ flex: 1 }}>
-                    <label className="text-xs">จำนวนเงิน (฿)</label>
-                    <input type="number" className="neon-input" value={editingTx.amount} onChange={e => setEditingTx({ ...editingTx, amount: parseFloat(e.target.value) || 0 })} />
+                    <label className="text-xs">หมวดหมู่</label>
+                    <div className="category-icon-grid" style={{ gridColumn: 'span 2' }}>
+                      {editingTx.type === 'income' ? (
+                        <div className="category-option active">
+                          <div className="icon-wrap cat-income"><TrendingUp size={20} /></div>
+                          <span className="cat-label">รายได้</span>
+                        </div>
+                      ) : (
+                        [
+                          { id: 'อาหารและเครื่องดื่ม', label: 'อาหาร', icon: <Utensils size={20} />, class: 'cat-food' },
+                          { id: 'การเดินทาง', label: 'เดินทาง', icon: <Car size={20} />, class: 'cat-transport' },
+                          { id: 'ของใช้จำเป็น', label: 'จำเป็น', icon: <Package size={20} />, class: 'cat-essential' },
+                          { id: 'ช็อปปิ้ง', label: 'ช้อปปิ้ง', icon: <ShoppingBag size={20} />, class: 'cat-shop' },
+                          { id: 'บันเทิง', label: 'บันเทิง', icon: <PlayCircle size={20} />, class: 'cat-ent' },
+                          { id: 'ของใช้ในบ้าน', label: 'บ้าน', icon: <Home size={20} />, class: 'cat-home' },
+                          { id: 'สุขภาพ', label: 'สุขภาพ', icon: <HeartPulse size={20} />, class: 'cat-health' },
+                          { id: 'ครอบครัว', label: 'ครอบครัว', icon: <Users size={20} />, class: 'cat-family' },
+                          { id: 'ท่องเที่ยว', label: 'ท่องเที่ยว', icon: <Palmtree size={20} />, class: 'cat-travel' },
+                          { id: 'การศึกษา', label: 'ศึกษา', icon: <GraduationCap size={20} />, class: 'cat-edu' },
+                          { id: 'สินเชื่อ บัตรเครดิต', label: 'บัตร/หนี้', icon: <CreditCard size={20} />, class: 'cat-debt' },
+                          { id: 'ค่าโทรศัพท์', label: 'โทรศัพท์', icon: <Phone size={20} />, class: 'cat-phone' },
+                          { id: 'งาน', label: 'งาน', icon: <Briefcase size={20} />, class: 'cat-work' },
+                          { id: 'เงินออม', label: 'เงินออม', icon: <Coins size={20} />, class: 'cat-save' },
+                          { id: 'อื่นๆ', label: 'อื่นๆ', icon: <MoreHorizontal size={20} />, class: 'cat-other' }
+                        ].map(cat => (
+                          <div
+                            key={cat.id}
+                            className={`category-option ${editingTx.category === cat.id ? 'active' : ''}`}
+                            onClick={() => setEditingTx({ ...editingTx, category: cat.id })}
+                          >
+                            <div className={`icon-wrap ${cat.class}`}>{cat.icon}</div>
+                            <span className="cat-label">{cat.label}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="inline-row">
                   <div className="neon-input-group" style={{ flex: 1 }}>
+                    <label className="text-xs">จำนวนเงิน (฿)</label>
+                    <input type="number" className="neon-input" value={editingTx.amount} onChange={e => setEditingTx({ ...editingTx, amount: parseFloat(e.target.value) || 0 })} />
+                  </div>
+                  <div className="neon-input-group" style={{ flex: 1 }}>
                     <label className="text-xs">บันทึกช่วยจำ</label>
                     <input className="neon-input" value={editingTx.note} onChange={e => setEditingTx({ ...editingTx, note: e.target.value })} />
                   </div>
+                </div>
+                <div className="inline-row" style={{ justifyContent: 'flex-end' }}>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button className="neon-btn primary" onClick={updateTransaction}>บันทึก</button>
                     <button className="neon-btn secondary" onClick={() => setEditingTx(null)}>ยกเลิก</button>

@@ -480,3 +480,128 @@ body:not(.theme-oled):not(.theme-neon) .message.bot {
   border: 1px solid var(--card-border);
   color: white;
 }
+
+/* Category Icon Grid UI */
+.category-icon-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.category-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 8px 0;
+  border-radius: 12px;
+}
+
+.category-option:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.category-option.active {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.category-option.active .icon-wrap {
+  box-shadow: 0 0 15px var(--accent-primary);
+  transform: scale(1.1);
+}
+
+.cat-label {
+  font-size: 0.65rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-weight: 500;
+  width: 100%;
+}
+
+.category-option.active .cat-label {
+  color: var(--text-primary);
+}
+
+.cat-food {
+  color: #ff9500;
+}
+
+.cat-transport {
+  color: #4ecdc4;
+}
+
+.cat-essential {
+  color: #facc15;
+}
+
+.cat-family {
+  color: #f472b6;
+}
+
+.cat-health {
+  color: #4ade80;
+}
+
+.cat-home {
+  color: #3b82f6;
+}
+
+.cat-travel {
+  color: #0ea5e9;
+}
+
+.cat-edu {
+  color: #6366f1;
+}
+
+.cat-debt {
+  color: #ef4444;
+}
+
+.cat-phone {
+  color: #a855f7;
+}
+
+.cat-ent {
+  color: #f87171;
+}
+
+.cat-work {
+  color: #fbbf24;
+}
+
+.cat-save {
+  color: #10b981;
+}
+
+.cat-shop {
+  color: #ec4899;
+}
+
+.cat-other {
+  color: #94a3b8;
+}
+
+.cat-income {
+  color: #35bb8e;
+}
