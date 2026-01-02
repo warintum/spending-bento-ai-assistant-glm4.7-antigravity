@@ -70,11 +70,24 @@ body::before {
 
 body.theme-oled {
   --bg-primary: #000000;
-  --bg-secondary: #080808;
-  --bg-glass: rgba(255, 255, 255, 0.02);
-  --card-border: rgba(255, 255, 255, 0.05);
+  --bg-secondary: #161616;
+  /* Slightly lighter but still very dark */
+  --bg-glass: rgba(255, 255, 255, 0.03);
+  --card-border: rgba(255, 255, 255, 0.18);
+  /* More visible border */
   --user-blur: 0px;
   background-image: none;
+}
+
+body.theme-oled .bento-card {
+  border: 1px solid var(--card-border);
+  background: linear-gradient(165deg, #302f2f, #000000);
+  /* Gradient for depth */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+body.theme-oled::before {
+  display: none;
 }
 
 body.theme-neon {

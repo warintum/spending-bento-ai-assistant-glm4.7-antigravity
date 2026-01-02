@@ -48,6 +48,8 @@ interface Transaction {
   category: string;
   date: string;
   note: string;
+  refNo?: string; // Reference number for better duplicate check
+  receiverName?: string; // Stored receiver name for behavior learning
 }
 
 interface Message {
@@ -77,6 +79,12 @@ const App: React.FC = () => {
 
   const [theme, setTheme] = useState<'glass' | 'oled' | 'neon' | 'neon-orange' | 'neon-blue' | 'neon-red'>(() => {
     return (localStorage.getItem('bento-theme') as 'glass' | 'oled' | 'neon' | 'neon-orange' | 'neon-blue' | 'neon-red') || 'glass';
+  });
+
+  // User Behavior Learning State
+  const [categoryPreferences, setCategoryPreferences] = useState<{ [key: string]: string }>(() => {
+    const saved = localStorage.getItem('bento-category-prefs');
+    return saved ? JSON.parse(saved) : {};
   });
 
   // Scanning States
@@ -217,6 +225,10 @@ const App: React.FC = () => {
     }
   }, [messages]);
 
+  useEffect(() => {
+    localStorage.setItem('bento-category-prefs', JSON.stringify(categoryPreferences));
+  }, [categoryPreferences]);
+
   const totalBalance = transactions.reduce((acc, curr) =>
     curr.type === 'income' ? acc + curr.amount : acc - curr.amount, 0);
 
@@ -228,32 +240,213 @@ const App: React.FC = () => {
     .filter(t => t.type === 'expense')
     .reduce((acc, curr) => acc + curr.amount, 0);
 
-  const getCategoryFromText = (text: string, type: 'income' | 'expense') => {
-    // AI Category Mapping (Shared Logic)
-    let category = type === 'income' ? 'รายได้' : 'อื่นๆ';
-    const categoryMap: { [key: string]: string[] } = {
-      'อาหารและเครื่องดื่ม': ['กิน', 'ข้าว', 'น้ำ', 'กาแฟ', 'อร่อย', 'ชา', 'ขนม', 'ส้มตำ', 'ก๋วยเตี๋ยว', 'บุฟเฟต์', 'บุฟเฟ่ต์', 'มื้อ', 'อาหาร', 'ค่าอาหาร', 'Grab', 'Lineman', 'Foodpanda', 'ShopeeFood', 'เซเว่น', 'คาเฟ่'],
-      'การเดินทาง': ['รถ', 'น้ำมัน', 'วิน', 'แท็กซี่', 'BTS', 'MRT', 'เรือ', 'ตั๋วเครื่องบิน', 'ทางด่วน', 'ที่จอดรถ', 'GrabCar', 'Bolt', 'ล้างรถ', 'ซ่อมรถ'],
-      'ของใช้จำเป็น': ['ทิชชู่', 'สบู่', 'ยาสีฟัน', 'ผงซักฟอก', 'ของแห้ง', 'ตลาด', 'ซุปเปอร์', 'ของใช้ส่วนตัว', 'ผ้าอนามัย', 'แชมพู'],
-      'ครอบครัว': ['ลูก', 'พ่อ', 'แม่', 'ภรรยา', 'สามี', 'ให้เงิน', 'กตัญญู', 'โรงเรียนลูก', 'ของเล่น', 'แพมเพิส', 'นมผง'],
-      'สุขภาพ': ['ยา', 'หมอ', 'โรงพยาบาล', 'คลินิก', 'วิตามิน', 'หมอฟัน', 'หาหมอ', 'ฟิตเนส', 'แว่นตา', 'ตรวจสุขภาพ'],
-      'ของใช้ในบ้าน': ['เฟอร์นิเจอร์', 'ตกแต่ง', 'เครื่องครัว', 'ซ่อมบ้าน', 'หลอดไฟ', 'เครื่องซักผ้า', 'ตู้เย็น', 'พัดลม', 'แอร์'],
-      'ท่องเที่ยว': ['โรงแรม', 'ทริป', 'ทัวร์', 'ต่างประเทศ', 'ทะเล', 'พักร้อน', 'รีสอร์ท', 'ตั๋วเครื่องบิน', 'ตั๋วรถไฟ'],
-      'การศึกษา': ['เรียน', 'คอร์ส', 'หนังสือ', 'ติว', 'มหาวิทยาลัย', 'เทอม', 'กวดวิชา', 'เครื่องเขียน', 'อบรม'],
-      'สินเชื่อ บัตรเครดิต': ['บัตรเครดิต', 'สินเชื่อ', 'งวด', 'ดอกเบี้ย', 'จ่ายบัตร', 'กู้', 'ผ่อนรถ', 'ผ่อนบ้าน', 'ส่งบ้าน'],
-      'ค่าโทรศัพท์': ['โทรศัพท์', 'มือถือ', 'รายเดือน', 'เติมเงิน', 'เน็ตมือถือ', 'AIS', 'True', 'DTAC'],
-      'บันเทิง': ['หนัง', 'ดูหนัง', 'คอนเสิร์ต', 'เกม', 'เติมเกม', 'ปาร์ตี้', 'เหล้า', 'เบียร์', 'คาราโอเกะ', 'Netflix', 'Spotify', 'Youtube Premium'],
-      'งาน': ['อุปกรณ์ทำงาน', 'ภาษี', 'สัมมนา', 'ธุรกิจ', 'ลงทุนงาน', 'สตาฟ', 'เลขา'],
-      'เงินออม': ['ออมเงิน', 'กองทุน', 'หุ้น', 'ทอง', 'เงินฝาก', 'เก็บเงิน', 'ประกันชีวิต', 'SSF', 'RMF', 'เทรด'],
-      'ช็อปปิ้ง': ['ซื้อ', 'เสื้อ', 'กางเกง', 'รองเท้า', 'ของใช้', 'ห้าง', 'Lazada', 'Shopee', 'ลาซาด้า', 'ช้อปปี้', 'ชอปปี้', 'ไดโซะ', 'เครื่องสำอาง', 'น้ำหอม']
+  const extractReceiver = (text: string): string | null => {
+    // Helper to strip branch codes (3-5 digits) and extra spaces
+    const clean = (name: string) => {
+      return name.replace(/\b\d{3,5}\b/g, '') // Remove sequences like 0099
+        .replace(/\s+/g, ' ')       // Collapse extra spaces
+        .trim();
     };
 
-    for (const [cat, keywords] of Object.entries(categoryMap)) {
-      if (keywords.some(k => text.includes(k))) {
-        return cat;
+    // 1. Try explicit "To" patterns first (Highest Priority)
+    const toPatterns = [
+      /ไปยัง\s*([ก-๙a-zA-Z0-9\s\.\/\-\(\)#]+?)(?:\s|$|บัญชี|เลขที่|Biller)/,
+      /To\s*([ก-๙a-zA-Z0-9\s\.\/\-\(\)#]+?)(?:\s|$|Account|Number|Biller)/,
+      /รับเงินโดย\s*([ก-๙a-zA-Z0-9\s\.\/\-\(\)#]+?)(?:\s|$)/,
+      /Transfer to\s*([ก-๙a-zA-Z0-9\s\.\/\-\(\)#]+?)(?:\s|$)/,
+      /ชำระค่า\s*([ก-๙a-zA-Z0-9\s\.\/\-\(\)#]+?)(?:\s|$)/,
+      /จ่ายบิล\s*([ก-๙a-zA-Z0-9\s\.\/\-\(\)#]+?)(?:\s|สำเร็จ|$)/
+    ];
+
+    for (const pattern of toPatterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        const name = match[1].trim();
+        if (name.length > 2 && !['ออมทรัพย์', 'Savings', 'Account', 'Bank'].includes(name)) {
+          return clean(name);
+        }
       }
     }
-    return category;
+
+    // 2. Identify Sender vs Receiver areas by looking for masked account numbers
+    // In full slips (KBank, Krungsri, SCB), the first account is usually sender, second is receiver
+    const accountRegex = /[X\d]{3}-[X\d]-[X\d]{5}-[X\d]|[X\d]{3}-[X\d]{1,2}-[X\d]{4,6}-[X\d]/g;
+    const accountMatches = Array.from(text.matchAll(accountRegex));
+
+    if (accountMatches.length >= 2) {
+      // Look for the name ABOVE the SECOND account (the receiver)
+      const secondAccountIndex = accountMatches[1].index || 0;
+      const textBeforeSecondAccount = text.substring(0, secondAccountIndex);
+      const linesBefore = textBeforeSecondAccount.split(/[\n\r]+/);
+
+      // The name should be one of the last few lines before the account
+      for (let i = linesBefore.length - 1; i >= 0; i--) {
+        const line = linesBefore[i].trim();
+        // Ignore lines that look like headers or specific keywords
+        if (line.length > 2 && !['ไปยัง', 'To', 'โอนเงิน', 'เงินสด', 'สำเร็จ'].some(k => line.includes(k))) {
+          return clean(line);
+        }
+      }
+    }
+
+    // 3. Fallback: Generic name above any account, but skip the very beginning of the slip
+    const nameMatch = text.match(/([ก-๙a-zA-Z\s\.\/]+)\s*[\n\r]+\s*[X\d]{3}-[X\d]-[X\d]{5}-[X\d]/);
+    if (nameMatch && text.indexOf(nameMatch[0]) > 50) {
+      return clean(nameMatch[1]);
+    }
+
+    // 4. SCB specific biller/merchant fallback
+    const billerMatch = text.match(/ไปยัง\s*[:\s]*([ก-๙a-zA-Z0-9\s\.]+?)\s+Biller ID/);
+    if (billerMatch) return clean(billerMatch[1]);
+
+    return null;
+  };
+
+  const extractRefNo = (text: string): string | null => {
+    // Patterns for Ref No: usually a long string of numbers/letters after specific keywords
+    const patterns = [
+      /(?:เลขที่อ้างอิง|Ref(?:\.|\s)?No|Transaction ID|เลขที่รายการ|รหัสอ้างอิง)[:\s]*([A-Z0-9]{10,})/i,
+      /(\d{10,30})/ // Fallback to any long sequence of numbers
+    ];
+
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+    }
+    return null;
+  };
+
+  const extractDate = (text: string): string | null => {
+    // 1. Check for DD/MM/YYYY format: 01/01/2026 (Very common in KTC/digital slips)
+    const slashDatePattern = /(\d{1,2})\/(\d{1,2})\/(\d{4})/;
+    const slashMatch = text.match(slashDatePattern);
+    if (slashMatch) {
+      let day = slashMatch[1].padStart(2, '0');
+      let month = slashMatch[2].padStart(2, '0');
+      let year = parseInt(slashMatch[3]);
+      if (year < 2400) year += 543; // Convert AD to BE for display consistency
+      return `${day}/${month}/${year}`;
+    }
+
+    // Thai Month Mapping
+    const thMonths: { [key: string]: string } = {
+      'ม.ค.': '01', 'ก.พ.': '02', 'มี.ค.': '03', 'เม.ย.': '04', 'พ.ค.': '05', 'มิ.ย.': '06',
+      'ก.ค.': '07', 'ส.ค.': '08', 'ก.ย.': '09', 'ต.ค.': '10', 'พ.ย.': '11', 'ธ.ค.': '12',
+      'มกราคม': '01', 'กุมภาพันธ์': '02', 'มีนาคม': '03', 'เมษายน': '04', 'พฤษภาคม': '05', 'มิถุนายน': '06',
+      'กรกฎาคม': '07', 'สิงหาคม': '08', 'กันยายน': '09', 'ตุลาคม': '10', 'พฤศจิกายน': '11', 'ธันวาคม': '12'
+    };
+
+    // 2. Check for Thai format: 12 ม.ค. 67 or 12 มกราคม 2567
+    // Improved regex to only match known Thai months
+    const thDaysPattern = '(\\d{1,2})';
+    const thMonthsPattern = '(' + Object.keys(thMonths).join('|').replace(/\./g, '\\.') + ')';
+    const thYearsPattern = '(\\d{2,4})';
+    const thDateRegex = new RegExp(`${thDaysPattern}\\s*${thMonthsPattern}\\s*${thYearsPattern}`, 'i');
+
+    const thMatch = text.match(thDateRegex);
+    if (thMatch) {
+      let day = thMatch[1].padStart(2, '0');
+      let month = thMonths[thMatch[2]] || '01';
+      let year = parseInt(thMatch[3]);
+      if (year < 100) year += 2500; // Handle 67 -> 2567
+      else if (year < 2400) year += 543; // Handle 2024 -> 2567
+      return `${day}/${month}/${year}`;
+    }
+
+    // English Month Mapping
+    const enMonths: { [key: string]: string } = {
+      'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'May': '05', 'Jun': '06',
+      'Jul': '07', 'Aug': '08', 'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
+    };
+
+    // 3. Check for English format: 12 Jan 2024
+    const enDatePattern = /(\d{1,2})\s*([a-zA-Z]{3,})\s*(\d{2,4})/;
+    const enMatch = text.match(enDatePattern);
+    if (enMatch) {
+      let shortMonth = enMatch[2].substring(0, 3);
+      if (enMonths[shortMonth]) {
+        let day = enMatch[1].padStart(2, '0');
+        let month = enMonths[shortMonth];
+        let year = parseInt(enMatch[3]);
+        if (year < 100) year += 2000;
+        return `${day}/${month}/${year + 543}`;
+      }
+    }
+
+    return null;
+  };
+
+  const getCategoryFromText = (text: string, type: 'income' | 'expense', receiver?: string | null) => {
+    if (type === 'income') return 'รายได้';
+
+    // 1. Check User Preferences first
+    if (receiver && categoryPreferences[receiver]) {
+      console.log(`Using user preference for ${receiver}: ${categoryPreferences[receiver]}`);
+      return categoryPreferences[receiver];
+    }
+
+    // Weighted Category Mapping
+    const categoryMap: { [key: string]: { keywords: string[], weight: number } } = {
+      'อาหารและเครื่องดื่ม': {
+        keywords: ['กิน', 'ข้าว', 'น้ำ', 'กาแฟ', 'อร่อย', 'ชา', 'ขนม', 'ส้มตำ', 'ก๋วยเตี๋ยว', 'บุฟเฟต์', 'บุฟเฟ่ต์', 'มื้อ', 'อาหาร', 'ค่าอาหาร', 'GrabFood', 'Lineman', 'Foodpanda', 'ShopeeFood', 'เซเว่น', 'คาเฟ่', 'KFC', 'McDonald', 'Starbucks'],
+        weight: 1.2
+      },
+      'การเดินทาง': {
+        keywords: ['รถ', 'น้ำมัน', 'วิน', 'แท็กซี่', 'BTS', 'MRT', 'เรือ', 'ตั๋วเครื่องบิน', 'ทางด่วน', 'ที่จอดรถ', 'GrabCar', 'Bolt', 'ล้างรถ', 'ซ่อมรถ', 'ปั๊ม', 'เติมน้ำมัน'],
+        weight: 1.0
+      },
+      'ของใช้จำเป็น': {
+        keywords: ['ทิชชู่', 'สบู่', 'ยาสีฟัน', 'ผงซักฟอก', 'ของแห้ง', 'ตลาด', 'ซุปเปอร์', 'ของใช้ส่วนตัว', 'ผ้าอนามัย', 'แชมพู', 'โลตัส', 'บิ๊กซี', 'Lotus', 'BigC', 'Watson', 'CJ'],
+        weight: 1.0
+      },
+      'สุขภาพ': {
+        keywords: ['ยา', 'หมอ', 'โรงพยาบาล', 'คลินิก', 'วิตามิน', 'หมอฟัน', 'หาหมอ', 'ฟิตเนส', 'แว่นตา', 'ตรวจสุขภาพ', 'Pharmacy', 'Health'],
+        weight: 1.5 // Health keywords are usually very specific
+      },
+      'สินเชื่อ บัตรเครดิต': {
+        keywords: [
+          'บัตรเครดิต', 'สินเชื่อ', 'งวด', 'ดอกเบี้ย', 'จ่ายบัตร', 'กรุงศรีเฟิร์สช้อยส์', 'KTC', 'กู้', 'ผ่อนรถ', 'ผ่อนบ้าน', 'ส่งบ้าน', 'ค่าบ้าน', 'Credit Card', 'Loan', 'Leasing',
+          'เฟิร์สช้อยส์', 'First Choice', 'Central The 1', 'เซ็นทรัล เดอะวัน', 'เดอะวัน', 'Krungsri', 'โอน:ธุรกิจ'
+        ],
+        weight: 1.4
+      },
+      'บันเทิง': {
+        keywords: ['หนัง', 'ดูหนัง', 'คอนเสิร์ต', 'เกม', 'เติมเกม', 'ปาร์ตี้', 'เหล้า', 'เบียร์', 'คาราโอเกะ', 'Netflix', 'Spotify', 'Youtube Premium', 'Cinema'],
+        weight: 1.1
+      },
+      'ช็อปปิ้ง': {
+        keywords: ['ซื้อ', 'เสื้อ', 'กางเกง', 'รองเท้า', 'ของใช้', 'ห้าง', 'Lazada', 'Shopee', 'ลาซาด้า', 'ช้อปปี้', 'ชอปปี้', 'ไดโซะ', 'เครื่องสำอาง', 'น้ำหอม', 'Mall'],
+        weight: 1.0
+      },
+      'สาธารณูปโภค': {
+        keywords: ['การไฟฟ้า', 'การประปา', 'ค่าไฟ', 'ค่าน้ำ', 'MEA', 'PEA', 'MWA', 'PWA'],
+        weight: 2.0 // Very specific
+      }
+    };
+
+    let bestCategory = 'อื่นๆ';
+    let maxScore = 0;
+
+    for (const [cat, config] of Object.entries(categoryMap)) {
+      let matches = 0;
+      config.keywords.forEach(k => {
+        if (text.includes(k)) {
+          matches++;
+        }
+      });
+
+      if (matches > 0) {
+        const score = matches * config.weight;
+        if (score > maxScore) {
+          maxScore = score;
+          bestCategory = cat;
+        }
+      }
+    }
+
+    return bestCategory;
   };
 
   const parseNaturalLanguage = (text: string) => {
@@ -308,6 +501,20 @@ const App: React.FC = () => {
 
   const updateTransaction = () => {
     if (!editingTx) return;
+
+    // User Behavior Learning: if category changed and it's a slip-like transaction, save preference
+    const originalTx = transactions.find(t => t.id === editingTx.id);
+    if (originalTx && originalTx.category !== editingTx.category) {
+      // Use stored receiverName if available, otherwise try to extract from note
+      const receiver = originalTx.receiverName ||
+        (originalTx.note.includes('สลิป') ? extractReceiver(originalTx.note) :
+          (!['โอนเงิน', 'ซื้อสลากดิจิทัล'].includes(originalTx.note) ? originalTx.note : null));
+
+      if (receiver && receiver.length > 2) {
+        setCategoryPreferences(prev => ({ ...prev, [receiver]: editingTx.category }));
+      }
+    }
+
     setTransactions(transactions.map(t => t.id === editingTx.id ? editingTx : t));
     setEditingTx(null);
   };
@@ -426,11 +633,23 @@ const App: React.FC = () => {
 
         console.log("Scanned Text:", text);
 
+        // 0. Detect Bank
+        let detectedBank = 'Unknown';
+        if (text.includes('KASIKORNBANK') || text.includes('กสิกรไทย')) detectedBank = 'KBank';
+        else if (text.includes('SCB') || text.includes('ไทยพาณิชย์')) detectedBank = 'SCB';
+        else if (text.includes('Krungthai') || text.includes('กรุงไทย')) detectedBank = 'Krungthai';
+        else if (text.includes('Bangkok Bank') || text.includes('กรุงเทพ')) detectedBank = 'BBL';
+
         // Improved Amount Extraction Logic
         let possibleAmounts: { val: number, score: number }[] = [];
 
         // Keywords that usually precede an amount
-        const amountKeywords = ['ยอดชำระทั้งหมด', 'ยอดรวม', 'ยอดชำระ', 'จำนวนเงิน', 'amount', 'total', 'ชำระเงิน', 'paid amount'];
+        const amountKeywords = ['ยอดชำระทั้งหมด', 'ยอดรวม', 'ยอดชำระ', 'จำนวนเงิน', 'amount', 'total', 'ชำระเงิน', 'paid amount', 'บาท'];
+
+        // Bank-Specific keywords for amount
+        if (detectedBank === 'KBank') amountKeywords.push('จำนวน:');
+        if (detectedBank === 'SCB') amountKeywords.push('จำนวนเงิน (Baht)');
+
         // Units that usually follow an amount
         const units = ['บาท', 'baht', 'thb', '฿'];
 
@@ -480,15 +699,35 @@ const App: React.FC = () => {
         const bestUnitMatch = possibleAmounts.find(a => a.score >= 80);
         if (bestUnitMatch) amount = bestUnitMatch.val;
 
-        // Real Category Detection from Text
-        const detectedCategory = getCategoryFromText(text, 'expense');
+        // Detect Receiver
+        const receiver = extractReceiver(text);
+        if (receiver) {
+          console.log("Detected Receiver:", receiver);
+        }
+
+        // 0.1 Detect Ref No
+        const refNo = extractRefNo(text);
+        if (refNo) {
+          console.log("Detected Ref No:", refNo);
+        }
+
+        // 0.2 Detect Slip Date
+        const slipDate = extractDate(text);
+        if (slipDate) {
+          console.log("Detected Slip Date:", slipDate);
+        }
+
+        // Real Category Detection from Text (passing receiver for behavior learning)
+        const detectedCategory = getCategoryFromText(text, 'expense', receiver);
 
         // Smart Note Generation
-        let note = `สแกนจากสลิป #${i + 1}`;
-        if (text.includes('สลาก') || text.includes('GLO')) {
-          note = 'ซื้อสลากดิจิทัล';
-        } else if (text.includes('โอนเงิน') || text.includes('Transfer')) {
-          note = 'โอนเงิน';
+        let note = receiver || `สแกนจากสลิป #${i + 1}`;
+        if (!receiver) {
+          if (text.includes('สลาก') || text.includes('GLO')) {
+            note = 'ซื้อสลากดิจิทัล';
+          } else if (text.includes('โอนเงิน') || text.includes('Transfer')) {
+            note = 'โอนเงิน';
+          }
         }
 
         if (amount === 0) note += ' (ไม่พบยอดเงิน)';
@@ -498,16 +737,21 @@ const App: React.FC = () => {
           amount: amount || 0,
           type: 'expense',
           category: detectedCategory,
-          date: new Date().toLocaleDateString('th-TH'),
-          note: note
+          date: slipDate || new Date().toLocaleDateString('th-TH'),
+          note: note,
+          refNo: refNo || undefined,
+          receiverName: receiver || undefined
         };
 
-        // Duplicate Check: Date + Amount + Category + Note match check
-        const isDuplicate = transactions.some(t =>
-          t.amount === newTx.amount &&
-          t.date === newTx.date &&
-          t.category === newTx.category
-        );
+        // Duplicate Check: Ref No (Best) or Date + Amount + Category
+        const isDuplicate = transactions.some(t => {
+          if (newTx.refNo && t.refNo) {
+            return t.refNo === newTx.refNo;
+          }
+          return t.amount === newTx.amount &&
+            t.date === newTx.date &&
+            t.category === newTx.category;
+        });
 
         if (isDuplicate) {
           newTx.note = `[ซ้ำ?] ${newTx.note}`;
@@ -826,6 +1070,16 @@ const App: React.FC = () => {
             {editingTx?.id === tx.id && (
               <div className="inline-edit-area">
                 <div className="inline-row">
+                  <div className="neon-input-group" style={{ flex: 1 }}>
+                    <label className="text-xs">จำนวนเงิน (฿)</label>
+                    <input type="number" step="any" className="neon-input" value={editingTx.amount} onChange={e => setEditingTx({ ...editingTx, amount: parseFloat(e.target.value) || 0 })} />
+                  </div>
+                  <div className="neon-input-group" style={{ flex: 1 }}>
+                    <label className="text-xs">บันทึกช่วยจำ</label>
+                    <input className="neon-input" value={editingTx.note} onChange={e => setEditingTx({ ...editingTx, note: e.target.value })} />
+                  </div>
+                </div>
+                <div className="inline-row">
                   <div className="neon-toggle-container">
                     <label className="text-xs">ประเภท</label>
                     <div className={`neon-toggle ${editingTx.type}`} onClick={() => setEditingTx({ ...editingTx, type: editingTx.type === 'income' ? 'expense' : 'income' })}>
@@ -852,7 +1106,7 @@ const App: React.FC = () => {
                           { id: 'ครอบครัว', label: 'ครอบครัว', icon: <Users size={20} />, class: 'cat-family' },
                           { id: 'ท่องเที่ยว', label: 'ท่องเที่ยว', icon: <Palmtree size={20} />, class: 'cat-travel' },
                           { id: 'การศึกษา', label: 'ศึกษา', icon: <GraduationCap size={20} />, class: 'cat-edu' },
-                          { id: 'สินเชื่อ บัตรเครดิต', label: 'บัตร/หนี้', icon: <CreditCard size={20} />, class: 'cat-debt' },
+                          { id: 'สินเชื่อ บัตรเครดิต', label: 'สินเชื่อ', icon: <CreditCard size={20} />, class: 'cat-debt' },
                           { id: 'ค่าโทรศัพท์', label: 'โทรศัพท์', icon: <Phone size={20} />, class: 'cat-phone' },
                           { id: 'งาน', label: 'งาน', icon: <Briefcase size={20} />, class: 'cat-work' },
                           { id: 'เงินออม', label: 'เงินออม', icon: <Coins size={20} />, class: 'cat-save' },
@@ -869,16 +1123,6 @@ const App: React.FC = () => {
                         ))
                       )}
                     </div>
-                  </div>
-                </div>
-                <div className="inline-row">
-                  <div className="neon-input-group" style={{ flex: 1 }}>
-                    <label className="text-xs">จำนวนเงิน (฿)</label>
-                    <input type="number" step="any" className="neon-input" value={editingTx.amount} onChange={e => setEditingTx({ ...editingTx, amount: parseFloat(e.target.value) || 0 })} />
-                  </div>
-                  <div className="neon-input-group" style={{ flex: 1 }}>
-                    <label className="text-xs">บันทึกช่วยจำ</label>
-                    <input className="neon-input" value={editingTx.note} onChange={e => setEditingTx({ ...editingTx, note: e.target.value })} />
                   </div>
                 </div>
                 <div className="inline-row" style={{ justifyContent: 'flex-end' }}>
