@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Cropper, { type Area, type Point } from 'react-easy-crop';
+import Tesseract from 'tesseract.js';
 import {
   Wallet,
   TrendingUp,
@@ -35,7 +36,8 @@ import {
   Briefcase,
   Coins,
   ShoppingBag,
-  MoreHorizontal
+  MoreHorizontal,
+  Image as ImageIcon
 } from 'lucide-react';
 import './index.css';
 
@@ -77,6 +79,13 @@ const App: React.FC = () => {
     return (localStorage.getItem('bento-theme') as 'glass' | 'oled' | 'neon' | 'neon-orange' | 'neon-blue' | 'neon-red') || 'glass';
   });
 
+  // Scanning States
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanQueue, setScanQueue] = useState<string[]>([]);
+  const [currentScanIndex, setCurrentScanIndex] = useState(0);
+  const [scanResults, setScanResults] = useState<Transaction[]>([]);
+  const [scanSummary, setScanSummary] = useState<{ count: number, total: number }>({ count: 0, total: 0 });
+
   const [blur, setBlur] = useState<number>(() => parseInt(localStorage.getItem('glass-blur') || '20'));
   const [opacity, setOpacity] = useState<number>(() => parseInt(localStorage.getItem('glass-opacity') || '15'));
   const [bgImage, setBgImage] = useState<string>(() => localStorage.getItem('glass-bg') || '');
@@ -86,6 +95,7 @@ const App: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importFileRef = useRef<HTMLInputElement>(null);
+  const scanFileInputRef = useRef<HTMLInputElement>(null);
 
   const exportToCSV = () => {
     if (transactions.length === 0) {
@@ -218,22 +228,8 @@ const App: React.FC = () => {
     .filter(t => t.type === 'expense')
     .reduce((acc, curr) => acc + curr.amount, 0);
 
-  const parseNaturalLanguage = (text: string) => {
-    const amountMatch = text.match(/[\d,.]+/);
-    const amount = amountMatch ? parseFloat(amountMatch[0].replace(/,/g, '')) : 0;
-    if (amount === 0) return null;
-    let type: 'income' | 'expense' = 'expense';
-
-    // Expanded Thai Income Keywords for smarter recognition
-    const incomeKeywords = [
-      'เงินเดือน', 'ได้เงิน', 'เข้า', 'รายรับ', 'โอนเข้า', 'ถอนเงิน', 'ค่าคอม',
-      'รับ', 'รับเงิน', 'ขาย', 'ขายของ', 'ขายได้', 'กำไร', 'โบนัส', 'ทิป',
-      'ถูกหวย', 'สลาก', 'ปันผล', 'มรดก', 'คืนเงิน'
-    ];
-
-    if (incomeKeywords.some(k => text.includes(k))) type = 'income';
-
-    // AI Category Mapping
+  const getCategoryFromText = (text: string, type: 'income' | 'expense') => {
+    // AI Category Mapping (Shared Logic)
     let category = type === 'income' ? 'รายได้' : 'อื่นๆ';
     const categoryMap: { [key: string]: string[] } = {
       'อาหารและเครื่องดื่ม': ['กิน', 'ข้าว', 'น้ำ', 'กาแฟ', 'อร่อย', 'ชา', 'ขนม', 'ส้มตำ', 'ก๋วยเตี๋ยว', 'บุฟเฟต์', 'บุฟเฟ่ต์', 'มื้อ', 'อาหาร', 'ค่าอาหาร', 'Grab', 'Lineman', 'Foodpanda', 'ShopeeFood', 'เซเว่น', 'คาเฟ่'],
@@ -252,14 +248,30 @@ const App: React.FC = () => {
       'ช็อปปิ้ง': ['ซื้อ', 'เสื้อ', 'กางเกง', 'รองเท้า', 'ของใช้', 'ห้าง', 'Lazada', 'Shopee', 'ลาซาด้า', 'ช้อปปี้', 'ชอปปี้', 'ไดโซะ', 'เครื่องสำอาง', 'น้ำหอม']
     };
 
-    if (type === 'expense') {
-      for (const [cat, keywords] of Object.entries(categoryMap)) {
-        if (keywords.some(k => text.includes(k))) {
-          category = cat;
-          break;
-        }
+    for (const [cat, keywords] of Object.entries(categoryMap)) {
+      if (keywords.some(k => text.includes(k))) {
+        return cat;
       }
     }
+    return category;
+  };
+
+  const parseNaturalLanguage = (text: string) => {
+    const amountMatch = text.match(/[\d,.]+/);
+    const amount = amountMatch ? parseFloat(amountMatch[0].replace(/,/g, '')) : 0;
+    if (amount === 0) return null;
+    let type: 'income' | 'expense' = 'expense';
+
+    // Expanded Thai Income Keywords for smarter recognition
+    const incomeKeywords = [
+      'เงินเดือน', 'ได้เงิน', 'เข้า', 'รายรับ', 'โอนเข้า', 'ถอนเงิน', 'ค่าคอม',
+      'รับ', 'รับเงิน', 'ขาย', 'ขายของ', 'ขายได้', 'กำไร', 'โบนัส', 'ทิป',
+      'ถูกหวย', 'สลาก', 'ปันผล', 'มรดก', 'คืนเงิน'
+    ];
+
+    if (incomeKeywords.some(k => text.includes(k))) type = 'income';
+
+    const category = getCategoryFromText(text, type);
 
     // Fix: Escape the dot in 'บ.' to match literal 'บ.' and not wildcard any character
     let note = text.replace(/[\d,]+/g, '').replace(/บาท|บ\./g, '').trim();
@@ -370,6 +382,163 @@ const App: React.FC = () => {
         setTempImage(null);
       }
     }
+  };
+
+  // Slip Scanning Logic
+  const handleSlipUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const newQueue: string[] = [];
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        newQueue.push(result);
+        if (newQueue.length === files.length) {
+          setScanQueue(newQueue);
+          setIsScanning(true);
+          setCurrentScanIndex(0);
+          setScanResults([]);
+          processQueue(newQueue);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const processQueue = async (queue: string[]) => {
+    let totalFoundCount = 0;
+    let totalFoundAmount = 0;
+
+    for (let i = 0; i < queue.length; i++) {
+      setCurrentScanIndex(i);
+
+      try {
+        // Real OCR using Tesseract.js
+        const { data: { text } } = await Tesseract.recognize(
+          queue[i],
+          'tha+eng', // Scan both Thai and English
+          {
+            // logger: m => console.log(m) 
+          }
+        );
+
+        console.log("Scanned Text:", text);
+
+        // Improved Amount Extraction Logic
+        let possibleAmounts: { val: number, score: number }[] = [];
+
+        // Keywords that usually precede an amount
+        const amountKeywords = ['ยอดชำระทั้งหมด', 'ยอดรวม', 'ยอดชำระ', 'จำนวนเงิน', 'amount', 'total', 'ชำระเงิน', 'paid amount'];
+        // Units that usually follow an amount
+        const units = ['บาท', 'baht', 'thb', '฿'];
+
+        // 1. Scan for Keyword + Number patterns
+        const keywordRegex = new RegExp(`(?:${amountKeywords.join('|')})\\s*[:\\-\\s]*([\\d,]+\\.?\\d*)`, 'i');
+        const keywordMatch = text.match(keywordRegex);
+        if (keywordMatch && keywordMatch[1]) {
+          const val = parseFloat(keywordMatch[1].replace(/,/g, ''));
+          if (val > 0) possibleAmounts.push({ val, score: 100 });
+        }
+
+        // 2. Scan for Number + Unit patterns
+        const unitRegex = new RegExp(`([\\d,]+\\.?\\d*)\\s*(?:${units.join('|')})`, 'i');
+        const unitMatch = text.match(unitRegex);
+        if (unitMatch && unitMatch[1]) {
+          const val = parseFloat(unitMatch[1].replace(/,/g, ''));
+          if (val > 0) possibleAmounts.push({ val, score: 80 });
+        }
+
+        // 3. Fallback: Extract all numbers and score them
+        const allNumbers = text.match(/\d+[\d,.]*/g);
+        if (allNumbers) {
+          allNumbers.forEach(n => {
+            const raw = n.replace(/,/g, '');
+            const val = parseFloat(raw);
+            if (isNaN(val) || val <= 0 || val > 1000000) return;
+
+            let score = 0;
+            // High score for decimals (common in slips)
+            if (raw.includes('.')) score += 30;
+            // High score if near unit in original text
+            if (new RegExp(`[\\d,.]+\\s*(?:${units.join('|')})`).test(text)) score += 20;
+
+            // Check if this number is the one mentioned in the GLO slip format "240 บาท"
+            // We already did unit scan, but let's add generalized scoring for numbers
+            possibleAmounts.push({ val, score });
+          });
+        }
+
+        // Sort by score (desc) and value (desc) to pick the best candidate
+        possibleAmounts.sort((a, b) => b.score - a.score || b.val - a.val);
+
+        // Pick the top amount if exists
+        let amount = possibleAmounts.length > 0 ? possibleAmounts[0].val : 0;
+
+        // Final sanity check: if we found a "บาท" match, it usually is the right one even if smaller than a wallet ID
+        const bestUnitMatch = possibleAmounts.find(a => a.score >= 80);
+        if (bestUnitMatch) amount = bestUnitMatch.val;
+
+        // Real Category Detection from Text
+        const detectedCategory = getCategoryFromText(text, 'expense');
+
+        // Smart Note Generation
+        let note = `สแกนจากสลิป #${i + 1}`;
+        if (text.includes('สลาก') || text.includes('GLO')) {
+          note = 'ซื้อสลากดิจิทัล';
+        } else if (text.includes('โอนเงิน') || text.includes('Transfer')) {
+          note = 'โอนเงิน';
+        }
+
+        if (amount === 0) note += ' (ไม่พบยอดเงิน)';
+
+        const newTx: Transaction = {
+          id: (Date.now() + i).toString(),
+          amount: amount || 0,
+          type: 'expense',
+          category: detectedCategory,
+          date: new Date().toLocaleDateString('th-TH'),
+          note: note
+        };
+
+        // Duplicate Check: Date + Amount + Category + Note match check
+        const isDuplicate = transactions.some(t =>
+          t.amount === newTx.amount &&
+          t.date === newTx.date &&
+          t.category === newTx.category
+        );
+
+        if (isDuplicate) {
+          newTx.note = `[ซ้ำ?] ${newTx.note}`;
+        }
+
+        setScanResults(prev => [newTx, ...prev]);
+        totalFoundCount++;
+        totalFoundAmount += (amount || 0);
+        setScanSummary({ count: totalFoundCount, total: totalFoundAmount });
+
+      } catch (err) {
+        console.error("OCR Error:", err);
+        const newTx: Transaction = {
+          id: (Date.now() + i).toString(),
+          amount: 0,
+          type: 'expense',
+          category: 'อื่นๆ',
+          date: new Date().toLocaleDateString('th-TH'),
+          note: `สแกนจากสลิป #${i + 1} (ผิดพลาด)`
+        };
+        setScanResults(prev => [newTx, ...prev]);
+      }
+    }
+  };
+
+  const confirmScanResults = () => {
+    setTransactions(prev => [...scanResults, ...prev]);
+    setIsScanning(false);
+    setScanQueue([]);
+    setScanResults([]);
+    alert(`บันทึกสำเร็จ ${scanResults.length} รายการ เรียบร้อยแล้วครับ!`);
   };
 
   const bgPresets = [
@@ -593,7 +762,13 @@ const App: React.FC = () => {
               value={chatInput} onChange={e => setChatInput(e.target.value)}
               onKeyPress={e => e.key === 'Enter' && handleSendMessage()}
             />
-            <button className="chat-send-btn" onClick={handleSendMessage}><Send size={16} color="black" /></button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="chat-send-btn" style={{ background: 'rgba(255,255,255,0.1)', color: 'white' }} onClick={() => scanFileInputRef.current?.click()} title="สแกนสลิป">
+                <ImageIcon size={18} />
+              </button>
+              <button className="chat-send-btn" onClick={handleSendMessage}><Send size={16} color="black" /></button>
+            </div>
+            <input type="file" ref={scanFileInputRef} hidden accept="image/*" multiple onChange={handleSlipUpload} />
           </div>
         </div>
 
@@ -608,34 +783,43 @@ const App: React.FC = () => {
 
         {displayedTransactions.map(tx => (
           <React.Fragment key={tx.id}>
-            <div className={`${cardClass} large`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px' }}>
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                <div style={{ padding: '8px', borderRadius: '10px', background: tx.type === 'income' ? 'rgba(45, 212, 191, 0.1)' : 'rgba(251, 113, 133, 0.1)' }}>
+            <div className={`${cardClass} large`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', gap: '12px' }}>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flex: 1, minWidth: 0 }}>
+                <div style={{ flexShrink: 0, padding: '8px', borderRadius: '10px', background: tx.type === 'income' ? 'rgba(45, 212, 191, 0.1)' : 'rgba(251, 113, 133, 0.1)' }}>
                   {tx.type === 'income' ? <ArrowUpRight size={18} className="text-teal" /> : <ArrowDownLeft size={18} className="text-coral" />}
                 </div>
-                <div>
-                  <p className="text-sm">
-                    {tx.note}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <p className="text-sm" style={{
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      maxWidth: '100%'
+                    }}>
+                      {tx.note}
+                    </p>
                     <span style={{
-                      fontSize: '0.65rem',
+                      fontSize: '0.55rem',
                       opacity: 0.6,
                       background: 'rgba(255,255,255,0.08)',
-                      padding: '2px 8px',
-                      borderRadius: '6px',
-                      marginLeft: '8px',
-                      border: '1px solid rgba(255,255,255,0.1)'
+                      padding: '1px 6px',
+                      borderRadius: '4px',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      whiteSpace: 'nowrap'
                     }}>
                       {tx.category}
                     </span>
-                  </p>
+                  </div>
                   <p style={{ fontSize: '0.6rem', opacity: 0.5 }}>{tx.date}</p>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <p className={`text-lg ${tx.type === 'income' ? 'text-teal' : 'text-coral'}`}>{tx.type === 'income' ? '+' : '-'}฿{tx.amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button className="action-btn edit" onClick={() => setEditingTx(editingTx?.id === tx.id ? null : tx)}><Edit2 size={16} /></button>
-                  <button className="action-btn delete" onClick={() => deleteTransaction(tx.id)}><Trash2 size={16} /></button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+                <p className={`text-lg ${tx.type === 'income' ? 'text-teal' : 'text-coral'}`} style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
+                  {tx.type === 'income' ? '+' : '-'}฿{tx.amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                </p>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <button className="action-btn edit" style={{ padding: '6px' }} onClick={() => setEditingTx(editingTx?.id === tx.id ? null : tx)}><Edit2 size={14} /></button>
+                  <button className="action-btn delete" style={{ padding: '6px' }} onClick={() => deleteTransaction(tx.id)}><Trash2 size={14} /></button>
                 </div>
               </div>
             </div>
@@ -708,6 +892,64 @@ const App: React.FC = () => {
           </React.Fragment>
         ))}
       </div>
+
+      {isScanning && (
+        <div className="scanning-overlay">
+          <div className="scanning-card">
+            <div className="setting-header">
+              <div>
+                <h3 className="text-lg">AI Slip Scanning</h3>
+                <p className="text-xs">กำลังวิเคราะห์รูปภาพที่ {currentScanIndex + 1}/{scanQueue.length}</p>
+              </div>
+              <button className="action-btn" onClick={() => setIsScanning(false)}><X size={18} /></button>
+            </div>
+
+            <div className="scan-visualizer">
+              {scanQueue[currentScanIndex] && (
+                <img src={scanQueue[currentScanIndex]} alt="scanning" className="scan-image-preview" />
+              )}
+              {currentScanIndex < scanQueue.length && <div className="scan-line"></div>}
+            </div>
+
+            <div className="scanning-status">
+              {currentScanIndex < scanQueue.length - 1 || (currentScanIndex === scanQueue.length - 1 && scanResults.length < scanQueue.length) ? (
+                <>
+                  <div className="scanning-loader"></div>
+                  <p className="text-sm">กำลังอ่านข้อมูลจากสลิป...</p>
+                </>
+              ) : (
+                <div style={{ width: '100%' }}>
+                  <p className="text-sm text-teal" style={{ marginBottom: '16px' }}>วิเคราะห์เสร็จสิ้น! พบทั้งหมด {scanResults.length} รายการ</p>
+
+                  <div className="scan-results-list no-scrollbar">
+                    {scanResults.map(tx => (
+                      <div key={tx.id} className="scan-result-item">
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-primary)' }}></div>
+                          <div>
+                            <p className="text-xs" style={{ fontWeight: 600 }}>{tx.category}</p>
+                            <p className="text-xs" style={{ opacity: 0.6 }}>{tx.note}</p>
+                          </div>
+                        </div>
+                        <p className="text-sm" style={{ fontWeight: 700 }}>฿{tx.amount.toLocaleString()}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ marginTop: '20px', padding: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '16px', display: 'flex', justifyContent: 'space-between' }}>
+                    <span className="text-sm">ยอดรวมที่ตรวจพบ</span>
+                    <span className="text-sm text-teal" style={{ fontWeight: 800 }}>฿{scanSummary.total.toLocaleString()}</span>
+                  </div>
+
+                  <button className="neon-btn primary" style={{ width: '100%', marginTop: '20px', height: '50px' }} onClick={confirmScanResults}>
+                    ยืนยันการบันทึกข้อมูล
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
