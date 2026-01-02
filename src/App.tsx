@@ -804,22 +804,7 @@ const App: React.FC = () => {
   const cardClass = `bento-card ${theme === 'glass' ? 'glass' : ''}`;
 
   return (
-    <div className="fade-in">
-      <header style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 10 }}>
-        <div>
-          <h1 className="text-xl">Expense</h1>
-          <p className="text-xs">Bento AI Assistant</p>
-        </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button className="action-btn" onClick={toggleTheme} title="เปลี่ยนโหมด">
-            {theme === 'glass' ? <Moon size={18} /> : theme === 'oled' ? <Sun size={18} /> : <Sparkles size={18} />}
-          </button>
-          <button className="action-btn" onClick={() => setIsSettingsOpen(true)} title="ตั้งค่ากระจก">
-            <Settings size={18} />
-          </button>
-        </div>
-      </header>
-
+    <>
       {isSettingsOpen && (
         <div className="settings-overlay" onClick={() => setIsSettingsOpen(false)}>
           <div className="settings-card" onClick={e => e.stopPropagation()}>
@@ -970,173 +955,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      <div className="bento-grid">
-        <div className={`${cardClass} large glow`}>
-          <p className="text-xs">ยอดเงินคงเหลือ</p>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginTop: '4px' }}>
-            <span className="text-huge">{totalBalance < 0 ? '-' : ''}฿{Math.floor(Math.abs(totalBalance)).toLocaleString()}</span>
-            <span className="text-base text-teal">.{(Math.abs(totalBalance) % 1).toFixed(2).split('.')[1]}</span>
-          </div>
-          <Wallet size={24} className="text-teal" style={{ position: 'absolute', top: '20px', right: '20px', opacity: 0.8 }} />
-        </div>
-
-        <div className={cardClass}>
-          <TrendingUp size={24} className="text-teal" />
-          <p className="text-xs" style={{ marginTop: '12px' }}>รายรับ</p>
-          <p className="text-lg">฿{totalIncome.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
-        </div>
-
-        <div className={cardClass}>
-          <TrendingDown size={24} className="text-coral" />
-          <p className="text-xs" style={{ marginTop: '12px' }}>รายจ่าย</p>
-          <p className="text-lg">฿{totalExpense.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
-        </div>
-
-        <div className={`${cardClass} large`} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div className="no-scrollbar" style={{ height: '200px', overflowY: 'auto' }} ref={scrollRef}>
-            <div className="chat-container">
-              {messages.map(msg => (
-                <div key={msg.id} className={`message ${msg.sender}`}>{msg.text}</div>
-              ))}
-            </div>
-          </div>
-          <div className="chat-input-wrapper">
-            <input
-              className="chat-input" placeholder="บอกรายการที่นี่..."
-              value={chatInput} onChange={e => setChatInput(e.target.value)}
-              onKeyPress={e => e.key === 'Enter' && handleSendMessage()}
-            />
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button className="chat-send-btn" style={{ background: 'rgba(255,255,255,0.1)', color: 'white' }} onClick={() => scanFileInputRef.current?.click()} title="สแกนสลิป">
-                <ImageIcon size={18} />
-              </button>
-              <button className="chat-send-btn" onClick={handleSendMessage}><Send size={16} color="black" /></button>
-            </div>
-            <input type="file" ref={scanFileInputRef} hidden accept="image/*" multiple onChange={handleSlipUpload} />
-          </div>
-        </div>
-
-        <div style={{ gridColumn: 'span 2', marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 className="text-sm" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><History size={16} /> รายการล่าสุด</h2>
-          {transactions.length > 5 && (
-            <button onClick={() => setViewAll(!viewAll)} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              {viewAll ? <><ChevronUp size={14} /> แสดงน้อยลง</> : <><ChevronDown size={14} /> ดูทั้งหมด</>}
-            </button>
-          )}
-        </div>
-
-        {displayedTransactions.map(tx => (
-          <React.Fragment key={tx.id}>
-            <div className={`${cardClass} large`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', gap: '12px' }}>
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flex: 1, minWidth: 0 }}>
-                <div style={{ flexShrink: 0, padding: '8px', borderRadius: '10px', background: tx.type === 'income' ? 'rgba(45, 212, 191, 0.1)' : 'rgba(251, 113, 133, 0.1)' }}>
-                  {tx.type === 'income' ? <ArrowUpRight size={18} className="text-teal" /> : <ArrowDownLeft size={18} className="text-coral" />}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <p className="text-sm" style={{
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      maxWidth: '100%'
-                    }}>
-                      {tx.note}
-                    </p>
-                    <span style={{
-                      fontSize: '0.55rem',
-                      opacity: 0.6,
-                      background: 'rgba(255,255,255,0.08)',
-                      padding: '1px 6px',
-                      borderRadius: '4px',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {tx.category}
-                    </span>
-                  </div>
-                  <p style={{ fontSize: '0.6rem', opacity: 0.5 }}>{tx.date}</p>
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
-                <p className={`text-lg ${tx.type === 'income' ? 'text-teal' : 'text-coral'}`} style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
-                  {tx.type === 'income' ? '+' : '-'}฿{tx.amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                </p>
-                <div style={{ display: 'flex', gap: '4px' }}>
-                  <button className="action-btn edit" style={{ padding: '6px' }} onClick={() => setEditingTx(editingTx?.id === tx.id ? null : tx)}><Edit2 size={14} /></button>
-                  <button className="action-btn delete" style={{ padding: '6px' }} onClick={() => deleteTransaction(tx.id)}><Trash2 size={14} /></button>
-                </div>
-              </div>
-            </div>
-            {editingTx?.id === tx.id && (
-              <div className="inline-edit-area">
-                <div className="inline-row">
-                  <div className="neon-input-group" style={{ flex: 1 }}>
-                    <label className="text-xs">จำนวนเงิน (฿)</label>
-                    <input type="number" step="any" className="neon-input" value={editingTx.amount} onChange={e => setEditingTx({ ...editingTx, amount: parseFloat(e.target.value) || 0 })} />
-                  </div>
-                  <div className="neon-input-group" style={{ flex: 1 }}>
-                    <label className="text-xs">บันทึกช่วยจำ</label>
-                    <input className="neon-input" value={editingTx.note} onChange={e => setEditingTx({ ...editingTx, note: e.target.value })} />
-                  </div>
-                </div>
-                <div className="inline-row">
-                  <div className="neon-toggle-container">
-                    <label className="text-xs">ประเภท</label>
-                    <div className={`neon-toggle ${editingTx.type}`} onClick={() => setEditingTx({ ...editingTx, type: editingTx.type === 'income' ? 'expense' : 'income' })}>
-                      <div className="toggle-thumb"></div><span className="toggle-label">{editingTx.type === 'income' ? 'รายรับ' : 'รายจ่าย'}</span>
-                    </div>
-                  </div>
-                  <div className="neon-input-group" style={{ flex: 1 }}>
-                    <label className="text-xs">หมวดหมู่</label>
-                    <div className="category-icon-grid" style={{ gridColumn: 'span 2' }}>
-                      {editingTx.type === 'income' ? (
-                        <div className="category-option active">
-                          <div className="icon-wrap cat-income"><TrendingUp size={20} /></div>
-                          <span className="cat-label">รายได้</span>
-                        </div>
-                      ) : (
-                        [
-                          { id: 'อาหารและเครื่องดื่ม', label: 'อาหาร', icon: <Utensils size={20} />, class: 'cat-food' },
-                          { id: 'การเดินทาง', label: 'เดินทาง', icon: <Car size={20} />, class: 'cat-transport' },
-                          { id: 'ของใช้จำเป็น', label: 'จำเป็น', icon: <Package size={20} />, class: 'cat-essential' },
-                          { id: 'ช็อปปิ้ง', label: 'ช้อปปิ้ง', icon: <ShoppingBag size={20} />, class: 'cat-shop' },
-                          { id: 'บันเทิง', label: 'บันเทิง', icon: <PlayCircle size={20} />, class: 'cat-ent' },
-                          { id: 'ของใช้ในบ้าน', label: 'บ้าน', icon: <Home size={20} />, class: 'cat-home' },
-                          { id: 'สุขภาพ', label: 'สุขภาพ', icon: <HeartPulse size={20} />, class: 'cat-health' },
-                          { id: 'ครอบครัว', label: 'ครอบครัว', icon: <Users size={20} />, class: 'cat-family' },
-                          { id: 'ท่องเที่ยว', label: 'ท่องเที่ยว', icon: <Palmtree size={20} />, class: 'cat-travel' },
-                          { id: 'การศึกษา', label: 'ศึกษา', icon: <GraduationCap size={20} />, class: 'cat-edu' },
-                          { id: 'สินเชื่อ บัตรเครดิต', label: 'สินเชื่อ', icon: <CreditCard size={20} />, class: 'cat-debt' },
-                          { id: 'ค่าโทรศัพท์', label: 'โทรศัพท์', icon: <Phone size={20} />, class: 'cat-phone' },
-                          { id: 'งาน', label: 'งาน', icon: <Briefcase size={20} />, class: 'cat-work' },
-                          { id: 'เงินออม', label: 'เงินออม', icon: <Coins size={20} />, class: 'cat-save' },
-                          { id: 'อื่นๆ', label: 'อื่นๆ', icon: <MoreHorizontal size={20} />, class: 'cat-other' }
-                        ].map(cat => (
-                          <div
-                            key={cat.id}
-                            className={`category-option ${editingTx.category === cat.id ? 'active' : ''}`}
-                            onClick={() => setEditingTx({ ...editingTx, category: cat.id })}
-                          >
-                            <div className={`icon-wrap ${cat.class}`}>{cat.icon}</div>
-                            <span className="cat-label">{cat.label}</span>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="inline-row" style={{ justifyContent: 'flex-end' }}>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button className="neon-btn primary" onClick={updateTransaction}>บันทึก</button>
-                    <button className="neon-btn secondary" onClick={() => setEditingTx(null)}>ยกเลิก</button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </React.Fragment>
-        ))}
-      </div>
-
       {isScanning && (
         <div className="scanning-overlay">
           <div className="scanning-card">
@@ -1194,7 +1012,342 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+
+      <div className="fade-in">
+        <header style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 10 }}>
+          <div>
+            <h1 className="text-xl">Expense</h1>
+            <p className="text-xs">Bento AI Assistant</p>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button className="action-btn" onClick={toggleTheme} title="เปลี่ยนโหมด">
+              {theme === 'glass' ? <Moon size={18} /> : theme === 'oled' ? <Sun size={18} /> : <Sparkles size={18} />}
+            </button>
+            <button className="action-btn" onClick={() => setIsSettingsOpen(true)} title="ตั้งค่ากระจก">
+              <Settings size={18} />
+            </button>
+          </div>
+        </header>
+
+        {isSettingsOpen && (
+          <div className="settings-overlay" onClick={() => setIsSettingsOpen(false)}>
+            <div className="settings-card" onClick={e => e.stopPropagation()}>
+              <div className="setting-header">
+                <h3 className="text-lg">Glass Customization</h3>
+                <button className="action-btn" onClick={() => setIsSettingsOpen(false)}><X size={18} /></button>
+              </div>
+
+              <div className="setting-item">
+                <div className="setting-header">
+                  <label className="text-sm">Glass Blur (ตัวการ์ด)</label>
+                  <span className="text-xs">{blur}px</span>
+                </div>
+                <input type="range" min="0" max="40" value={blur} onChange={e => setBlur(parseInt(e.target.value))} />
+              </div>
+
+              <div className="setting-item">
+                <div className="setting-header">
+                  <label className="text-sm">Glass Opacity (ความใส)</label>
+                  <span className="text-xs">{opacity}%</span>
+                </div>
+                <input type="range" min="0" max="80" value={opacity} onChange={e => setOpacity(parseInt(e.target.value))} />
+              </div>
+
+              <div style={{ padding: '15px 0', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div className="setting-item">
+                  <div className="setting-header">
+                    <label className="text-sm">Wallpaper Blur (พื้นหลัง)</label>
+                    <span className="text-xs">{bgBlur}px</span>
+                  </div>
+                  <input type="range" min="0" max="25" value={bgBlur} onChange={e => setBgBlur(parseInt(e.target.value))} />
+                </div>
+
+                <div className="setting-item">
+                  <div className="setting-header">
+                    <label className="text-sm">Wallpaper Brightness (ความสว่าง)</label>
+                    <span className="text-xs">{bgDim}%</span>
+                  </div>
+                  <input type="range" min="20" max="100" value={bgDim} onChange={e => setBgDim(parseInt(e.target.value))} />
+                </div>
+              </div>
+
+              <div className="setting-item">
+                <div className="setting-header" style={{ marginBottom: '8px' }}>
+                  <label className="text-sm">Background Preset</label>
+                  <button
+                    className="action-btn"
+                    style={{ padding: '4px 10px', fontSize: '0.75rem', gap: '6px', border: '1px solid var(--accent-primary)', color: 'white' }}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload size={14} /> อัพโหลด
+                  </button>
+                  <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={handleFileUpload} />
+                </div>
+                <div className="bg-presets">
+                  {bgPresets.map((bg, i) => (
+                    <button
+                      key={i}
+                      className={`preset-btn ${bgImage === bg ? 'active' : ''}`}
+                      style={{ backgroundImage: bg ? `url(${bg})` : 'none' }}
+                      onClick={() => setBgImage(bg)}
+                    >
+                      {!bg && <X size={14} />}
+                    </button>
+                  ))}
+                  {bgImage && !bgPresets.includes(bgImage) && (
+                    <button
+                      className="preset-btn active"
+                      style={{ backgroundImage: `url(${bgImage})` }}
+                      onClick={() => setBgImage(bgImage)}
+                    />
+                  )}
+                </div>
+              </div>
+              <div className="setting-item" style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px', marginTop: '10px' }}>
+                <label className="text-sm" style={{ display: 'block', marginBottom: '12px' }}>จัดการข้อมูล</label>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    className="action-btn"
+                    style={{ flex: 1, padding: '10px', height: 'auto', flexDirection: 'column', gap: '4px', fontSize: '0.7rem', border: '1px solid rgba(255,255,255,0.1)' }}
+                    onClick={exportToCSV}
+                  >
+                    <Download size={20} />
+                    ส่งออกข้อมูล (CSV)
+                  </button>
+                  <button
+                    className="action-btn"
+                    style={{ flex: 1, padding: '10px', height: 'auto', flexDirection: 'column', gap: '4px', fontSize: '0.7rem', border: '1px solid rgba(255,255,255,0.1)' }}
+                    onClick={() => importFileRef.current?.click()}
+                  >
+                    <FileUp size={20} />
+                    นำเข้าข้อมูล
+                  </button>
+                  <input
+                    type="file"
+                    ref={importFileRef}
+                    hidden
+                    accept=".csv,.json"
+                    onChange={handleImportData}
+                  />
+                </div>
+              </div>
+              <p className="text-xs" style={{ opacity: 0.5, fontStyle: 'italic' }}>* Settings only apply in Glass Mode</p>
+
+            </div>
+          </div>
+        )}
+
+        {isCropping && tempImage && (
+          <div className="cropper-overlay">
+            <div className="cropper-card">
+              <div className="setting-header">
+                <h3 className="text-lg">ตกแต่งรูปภาพ</h3>
+                <button className="action-btn" onClick={() => setIsCropping(false)}><X size={18} /></button>
+              </div>
+              <div className="cropper-container">
+                <Cropper
+                  image={tempImage}
+                  crop={crop}
+                  zoom={zoom}
+                  aspect={window.innerWidth / window.innerHeight}
+                  onCropChange={setCrop}
+                  onCropComplete={onCropComplete}
+                  onZoomChange={setZoom}
+                />
+              </div>
+              <div className="cropper-controls">
+                <div className="setting-item" style={{ width: '100%', marginBottom: '20px' }}>
+                  <div className="setting-header">
+                    <label className="text-sm">Zoom</label>
+                    <span className="text-xs">{zoom}x</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={1}
+                    max={3}
+                    step={0.1}
+                    value={zoom}
+                    onChange={(e) => setZoom(parseFloat(e.target.value))}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
+                  <button className="neon-btn secondary" style={{ flex: 1 }} onClick={() => setIsCropping(false)}>ยกเลิก</button>
+                  <button className="neon-btn primary" style={{ flex: 1 }} onClick={saveCroppedImage}>บันทึกพื้นหลัง</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="bento-grid">
+          <div className={`${cardClass} large glow`}>
+            <p className="text-xs">ยอดเงินคงเหลือ</p>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginTop: '4px' }}>
+              <span className="text-huge">{totalBalance < 0 ? '-' : ''}฿{Math.floor(Math.abs(totalBalance)).toLocaleString()}</span>
+              <span className="text-base text-teal">.{(Math.abs(totalBalance) % 1).toFixed(2).split('.')[1]}</span>
+            </div>
+            <Wallet size={24} className="text-teal" style={{ position: 'absolute', top: '20px', right: '20px', opacity: 0.8 }} />
+          </div>
+
+          <div className={cardClass}>
+            <TrendingUp size={24} className="text-teal" />
+            <p className="text-xs" style={{ marginTop: '12px' }}>รายรับ</p>
+            <p className="text-lg">฿{totalIncome.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
+          </div>
+
+          <div className={cardClass}>
+            <TrendingDown size={24} className="text-coral" />
+            <p className="text-xs" style={{ marginTop: '12px' }}>รายจ่าย</p>
+            <p className="text-lg">฿{totalExpense.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
+          </div>
+
+          <div className={`${cardClass} large`} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div className="no-scrollbar" style={{ height: '200px', overflowY: 'auto' }} ref={scrollRef}>
+              <div className="chat-container">
+                {messages.map(msg => (
+                  <div key={msg.id} className={`message ${msg.sender}`}>{msg.text}</div>
+                ))}
+              </div>
+            </div>
+            <div className="chat-input-wrapper">
+              <input
+                className="chat-input" placeholder="บอกรายการที่นี่..."
+                value={chatInput} onChange={e => setChatInput(e.target.value)}
+                onKeyPress={e => e.key === 'Enter' && handleSendMessage()}
+              />
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button className="chat-send-btn" style={{ background: 'rgba(255,255,255,0.1)', color: 'white' }} onClick={() => scanFileInputRef.current?.click()} title="สแกนสลิป">
+                  <ImageIcon size={18} />
+                </button>
+                <button className="chat-send-btn" onClick={handleSendMessage}><Send size={16} color="black" /></button>
+              </div>
+              <input type="file" ref={scanFileInputRef} hidden accept="image/*" multiple onChange={handleSlipUpload} />
+            </div>
+          </div>
+
+          <div style={{ gridColumn: 'span 2', marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 className="text-sm" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><History size={16} /> รายการล่าสุด</h2>
+            {transactions.length > 5 && (
+              <button onClick={() => setViewAll(!viewAll)} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                {viewAll ? <><ChevronUp size={14} /> แสดงน้อยลง</> : <><ChevronDown size={14} /> ดูทั้งหมด</>}
+              </button>
+            )}
+          </div>
+
+          {displayedTransactions.map(tx => (
+            <React.Fragment key={tx.id}>
+              <div className={`${cardClass} large`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', gap: '12px' }}>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flex: 1, minWidth: 0 }}>
+                  <div style={{ flexShrink: 0, padding: '8px', borderRadius: '10px', background: tx.type === 'income' ? 'rgba(45, 212, 191, 0.1)' : 'rgba(251, 113, 133, 0.1)' }}>
+                    {tx.type === 'income' ? <ArrowUpRight size={18} className="text-teal" /> : <ArrowDownLeft size={18} className="text-coral" />}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <p className="text-sm" style={{
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        maxWidth: '100%'
+                      }}>
+                        {tx.note}
+                      </p>
+                      <span style={{
+                        fontSize: '0.55rem',
+                        opacity: 0.6,
+                        background: 'rgba(255,255,255,0.08)',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {tx.category}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '0.6rem', opacity: 0.5 }}>{tx.date}</p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+                  <p className={`text-lg ${tx.type === 'income' ? 'text-teal' : 'text-coral'}`} style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
+                    {tx.type === 'income' ? '+' : '-'}฿{tx.amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                  </p>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    <button className="action-btn edit" style={{ padding: '6px' }} onClick={() => setEditingTx(editingTx?.id === tx.id ? null : tx)}><Edit2 size={14} /></button>
+                    <button className="action-btn delete" style={{ padding: '6px' }} onClick={() => deleteTransaction(tx.id)}><Trash2 size={14} /></button>
+                  </div>
+                </div>
+              </div>
+              {editingTx?.id === tx.id && (
+                <div className="inline-edit-area">
+                  <div className="inline-row">
+                    <div className="neon-input-group" style={{ flex: 1 }}>
+                      <label className="text-xs">จำนวนเงิน (฿)</label>
+                      <input type="number" step="any" className="neon-input" value={editingTx.amount} onChange={e => setEditingTx({ ...editingTx, amount: parseFloat(e.target.value) || 0 })} />
+                    </div>
+                    <div className="neon-input-group" style={{ flex: 1 }}>
+                      <label className="text-xs">บันทึกช่วยจำ</label>
+                      <input className="neon-input" value={editingTx.note} onChange={e => setEditingTx({ ...editingTx, note: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="inline-row">
+                    <div className="neon-toggle-container">
+                      <label className="text-xs">ประเภท</label>
+                      <div className={`neon-toggle ${editingTx.type}`} onClick={() => setEditingTx({ ...editingTx, type: editingTx.type === 'income' ? 'expense' : 'income' })}>
+                        <div className="toggle-thumb"></div><span className="toggle-label">{editingTx.type === 'income' ? 'รายรับ' : 'รายจ่าย'}</span>
+                      </div>
+                    </div>
+                    <div className="neon-input-group" style={{ flex: 1 }}>
+                      <label className="text-xs">หมวดหมู่</label>
+                      <div className="category-icon-grid" style={{ gridColumn: 'span 2' }}>
+                        {editingTx.type === 'income' ? (
+                          <div className="category-option active">
+                            <div className="icon-wrap cat-income"><TrendingUp size={20} /></div>
+                            <span className="cat-label">รายได้</span>
+                          </div>
+                        ) : (
+                          [
+                            { id: 'อาหารและเครื่องดื่ม', label: 'อาหาร', icon: <Utensils size={20} />, class: 'cat-food' },
+                            { id: 'การเดินทาง', label: 'เดินทาง', icon: <Car size={20} />, class: 'cat-transport' },
+                            { id: 'ของใช้จำเป็น', label: 'จำเป็น', icon: <Package size={20} />, class: 'cat-essential' },
+                            { id: 'ช็อปปิ้ง', label: 'ช้อปปิ้ง', icon: <ShoppingBag size={20} />, class: 'cat-shop' },
+                            { id: 'บันเทิง', label: 'บันเทิง', icon: <PlayCircle size={20} />, class: 'cat-ent' },
+                            { id: 'ของใช้ในบ้าน', label: 'บ้าน', icon: <Home size={20} />, class: 'cat-home' },
+                            { id: 'สุขภาพ', label: 'สุขภาพ', icon: <HeartPulse size={20} />, class: 'cat-health' },
+                            { id: 'ครอบครัว', label: 'ครอบครัว', icon: <Users size={20} />, class: 'cat-family' },
+                            { id: 'ท่องเที่ยว', label: 'ท่องเที่ยว', icon: <Palmtree size={20} />, class: 'cat-travel' },
+                            { id: 'การศึกษา', label: 'ศึกษา', icon: <GraduationCap size={20} />, class: 'cat-edu' },
+                            { id: 'สินเชื่อ บัตรเครดิต', label: 'สินเชื่อ', icon: <CreditCard size={20} />, class: 'cat-debt' },
+                            { id: 'ค่าโทรศัพท์', label: 'โทรศัพท์', icon: <Phone size={20} />, class: 'cat-phone' },
+                            { id: 'งาน', label: 'งาน', icon: <Briefcase size={20} />, class: 'cat-work' },
+                            { id: 'เงินออม', label: 'เงินออม', icon: <Coins size={20} />, class: 'cat-save' },
+                            { id: 'อื่นๆ', label: 'อื่นๆ', icon: <MoreHorizontal size={20} />, class: 'cat-other' }
+                          ].map(cat => (
+                            <div
+                              key={cat.id}
+                              className={`category-option ${editingTx.category === cat.id ? 'active' : ''}`}
+                              onClick={() => setEditingTx({ ...editingTx, category: cat.id })}
+                            >
+                              <div className={`icon-wrap ${cat.class}`}>{cat.icon}</div>
+                              <span className="cat-label">{cat.label}</span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="inline-row" style={{ justifyContent: 'flex-end' }}>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button className="neon-btn primary" onClick={updateTransaction}>บันทึก</button>
+                      <button className="neon-btn secondary" onClick={() => setEditingTx(null)}>ยกเลิก</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+
+      </div>
+    </>
   );
 };
 
