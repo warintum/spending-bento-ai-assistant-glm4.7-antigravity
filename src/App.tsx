@@ -37,7 +37,8 @@ import {
   Coins,
   ShoppingBag,
   MoreHorizontal,
-  Image as ImageIcon
+  Image as ImageIcon,
+  LayoutGrid
 } from 'lucide-react';
 import './index.css';
 
@@ -99,6 +100,8 @@ const App: React.FC = () => {
   const [bgImage, setBgImage] = useState<string>(() => localStorage.getItem('glass-bg') || '');
   const [bgBlur, setBgBlur] = useState<number>(() => parseInt(localStorage.getItem('glass-bg-blur') || '0'));
   const [bgDim, setBgDim] = useState<number>(() => parseInt(localStorage.getItem('glass-bg-dim') || '100'));
+  const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false);
+  const [isBottomThemeDropdownOpen, setIsBottomThemeDropdownOpen] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -224,6 +227,21 @@ const App: React.FC = () => {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // If any dropdown is open, and we click something
+      if (isThemeDropdownOpen || isBottomThemeDropdownOpen) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.theme-dropdown') && !target.closest('.action-btn')) {
+          setIsThemeDropdownOpen(false);
+          setIsBottomThemeDropdownOpen(false);
+        }
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isThemeDropdownOpen, isBottomThemeDropdownOpen]);
 
   useEffect(() => {
     localStorage.setItem('bento-category-prefs', JSON.stringify(categoryPreferences));
@@ -581,9 +599,13 @@ const App: React.FC = () => {
   };
 
   const toggleTheme = () => {
-    const themes: ('glass' | 'oled' | 'neon' | 'neon-orange' | 'neon-blue' | 'neon-red' | 'bento-color')[] = ['glass', 'oled', 'neon', 'neon-orange', 'neon-blue', 'neon-red', 'bento-color'];
-    const nextIndex = (themes.indexOf(theme) + 1) % themes.length;
-    setTheme(themes[nextIndex]);
+    setIsThemeDropdownOpen(!isThemeDropdownOpen);
+  };
+
+  const selectTheme = (newTheme: any) => {
+    setTheme(newTheme);
+    setIsThemeDropdownOpen(false);
+    setIsBottomThemeDropdownOpen(false);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1141,9 +1163,22 @@ const App: React.FC = () => {
             <p className="text-xs">Bento AI Assistant</p>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button className="action-btn" onClick={toggleTheme} title="เปลี่ยนโหมด">
-              {theme === 'glass' ? <Moon size={18} /> : theme === 'oled' ? <Sun size={18} /> : <Sparkles size={18} />}
-            </button>
+            <div style={{ position: 'relative' }}>
+              <button className={`action-btn ${isThemeDropdownOpen ? 'active' : ''}`} onClick={(e) => { e.stopPropagation(); toggleTheme(); }} title="เปลี่ยนโหมด">
+                {theme === 'glass' ? <Moon size={18} /> : theme === 'oled' ? <Sun size={18} /> : theme === 'bento-color' ? <LayoutGrid size={18} /> : <Sparkles size={18} />}
+              </button>
+              {isThemeDropdownOpen && (
+                <div className="theme-dropdown" onClick={e => e.stopPropagation()}>
+                  <button className={`dropdown-item ${(theme as string) === 'glass' ? 'active' : ''}`} onClick={() => selectTheme('glass')}><Moon size={16} /> Glass Mode</button>
+                  <button className={`dropdown-item ${(theme as string) === 'oled' ? 'active' : ''}`} onClick={() => selectTheme('oled')}><Sun size={16} /> OLED Mode</button>
+                  <button className={`dropdown-item ${(theme as string) === 'neon' ? 'active' : ''}`} onClick={() => selectTheme('neon')}><Sparkles size={16} /> Neon Cyan</button>
+                  <button className={`dropdown-item ${(theme as string) === 'neon-orange' ? 'active' : ''}`} onClick={() => selectTheme('neon-orange')}><Sparkles size={16} /> Neon Orange</button>
+                  <button className={`dropdown-item ${(theme as string) === 'neon-blue' ? 'active' : ''}`} onClick={() => selectTheme('neon-blue')}><Sparkles size={16} /> Neon Blue</button>
+                  <button className={`dropdown-item ${(theme as string) === 'neon-red' ? 'active' : ''}`} onClick={() => selectTheme('neon-red')}><Sparkles size={16} /> Neon Red</button>
+                  <button className={`dropdown-item ${(theme as string) === 'bento-color' ? 'active' : ''}`} onClick={() => selectTheme('bento-color')}><LayoutGrid size={16} /> Bento Color</button>
+                </div>
+              )}
+            </div>
             <button className="action-btn" onClick={() => setIsSettingsOpen(true)} title="ตั้งค่ากระจก">
               <Settings size={18} />
             </button>
@@ -1395,10 +1430,28 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            <div style={{ padding: '40px 20px', textAlign: 'center' }}>
-              <button className="action-btn" onClick={toggleTheme} style={{ margin: '0 auto', background: '#1a1b25', color: 'white', padding: '12px 24px', borderRadius: '16px', gap: '8px' }}>
+            <div style={{ padding: '40px 20px', textAlign: 'center', position: 'relative' }}>
+              <button
+                className="action-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsBottomThemeDropdownOpen(!isBottomThemeDropdownOpen);
+                }}
+                style={{ margin: '0 auto', background: '#1a1b25', color: 'white', padding: '12px 24px', borderRadius: '16px', gap: '8px' }}
+              >
                 <Sparkles size={18} /> Switch Theme
               </button>
+              {isBottomThemeDropdownOpen && (
+                <div className="theme-dropdown" style={{ bottom: 'calc(100% + 12px)', top: 'auto', left: '50%', transform: 'translateX(-50%)', zIndex: 1001 }}>
+                  <button className={`dropdown-item ${(theme as string) === 'glass' ? 'active' : ''}`} onClick={() => selectTheme('glass')}><Moon size={16} /> Glass Mode</button>
+                  <button className={`dropdown-item ${(theme as string) === 'oled' ? 'active' : ''}`} onClick={() => selectTheme('oled')}><Sun size={16} /> OLED Mode</button>
+                  <button className={`dropdown-item ${(theme as string) === 'neon' ? 'active' : ''}`} onClick={() => selectTheme('neon')}><Sparkles size={16} /> Neon Cyan</button>
+                  <button className={`dropdown-item ${(theme as string) === 'neon-orange' ? 'active' : ''}`} onClick={() => selectTheme('neon-orange')}><Sparkles size={16} /> Neon Orange</button>
+                  <button className={`dropdown-item ${(theme as string) === 'neon-blue' ? 'active' : ''}`} onClick={() => selectTheme('neon-blue')}><Sparkles size={16} /> Neon Blue</button>
+                  <button className={`dropdown-item ${(theme as string) === 'neon-red' ? 'active' : ''}`} onClick={() => selectTheme('neon-red')}><Sparkles size={16} /> Neon Red</button>
+                  <button className={`dropdown-item ${(theme as string) === 'bento-color' ? 'active' : ''}`} onClick={() => selectTheme('bento-color')}><LayoutGrid size={16} /> Bento Color</button>
+                </div>
+              )}
             </div>
           </div>
         ) : (

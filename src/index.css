@@ -19,6 +19,12 @@
   --user-opacity: 0.12;
   --user-bg-blur: 0px;
   --user-bg-dim: 1;
+
+  /* Dropdown Variables */
+  --dropdown-bg: rgba(20, 20, 25, 0.85);
+  --dropdown-border: rgba(255, 255, 255, 0.12);
+  --dropdown-item-hover: rgba(255, 255, 255, 0.08);
+  --dropdown-item-active-text: #000000;
 }
 
 * {
@@ -140,6 +146,12 @@ body.theme-bento-color {
   --card-border: rgba(0, 0, 0, 0.05);
   --card-glow: rgba(0, 0, 0, 0.02);
   --font-main: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Bento Mode Dropdown Overrides */
+  --dropdown-bg: rgba(255, 255, 255, 0.9);
+  --dropdown-border: rgba(0, 0, 0, 0.05);
+  --dropdown-item-hover: rgba(0, 0, 0, 0.04);
+  --dropdown-item-active-text: #ffffff;
 }
 
 body.theme-bento-color {
@@ -738,6 +750,74 @@ body:not(.theme-oled):not(.theme-neon) .message.bot {
   background: rgba(0, 0, 0, 0.2);
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Theme Dropdown Styles */
+.theme-dropdown {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  width: 180px;
+  background: var(--dropdown-bg);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--dropdown-border);
+  border-top: 1.5px solid var(--dropdown-border);
+  border-radius: 20px;
+  padding: 8px;
+  z-index: 1000;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  animation: dropdownIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes dropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+  background: var(--dropdown-item-hover);
+  color: var(--text-primary);
+  transform: translateX(4px);
+}
+
+.dropdown-item.active {
+  background: var(--accent-primary);
+  color: var(--dropdown-item-active-text);
+}
+
+.dropdown-item i,
+.dropdown-item svg {
+  opacity: 0.8;
+}
+
+/* Theme Button Ripple Effect */
+.action-btn {
+  position: relative;
+  overflow: visible;
 }
 
 .category-option {
