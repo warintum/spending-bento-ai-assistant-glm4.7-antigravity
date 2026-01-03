@@ -371,6 +371,10 @@ body.theme-neon-red .bento-card {
 }
 
 /* Specific Service Backgrounds */
+.card-red {
+  background: linear-gradient(135deg, #fae3e5 0%, #fac8c8 100%) !important;
+}
+
 .card-pink {
   background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%) !important;
 }
@@ -385,6 +389,22 @@ body.theme-neon-red .bento-card {
 
 .card-cyan {
   background: linear-gradient(135deg, #ecfeff 0%, #cffafe 100%) !important;
+}
+
+.card-orange {
+  background: linear-gradient(135deg, #fff4ec 0%, #f7e2cf 100%) !important;
+}
+
+.card-yellow {
+  background: linear-gradient(135deg, #fffeec 0%, #fff2cf 100%) !important;
+}
+
+.card-green {
+  background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%) !important;
+}
+
+.card-purple {
+  background: linear-gradient(135deg, #f6f0fd 0%, #e2ccfb 100%) !important;
 }
 
 /* Summary Sections */
@@ -714,7 +734,7 @@ body:not(.theme-oled):not(.theme-neon) .message.bot {
   grid-template-columns: repeat(4, 1fr);
   gap: 10px;
   margin-top: 12px;
-  padding: 16px;
+  padding: 5px;
   background: rgba(0, 0, 0, 0.2);
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -724,10 +744,10 @@ body:not(.theme-oled):not(.theme-neon) .message.bot {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 2px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  padding: 8px 0;
+  padding: 2px;
   border-radius: 12px;
 }
 
@@ -736,7 +756,8 @@ body:not(.theme-oled):not(.theme-neon) .message.bot {
 }
 
 .category-option.active {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.5);
+  padding: 4px;
   transform: translateY(-2px);
 }
 

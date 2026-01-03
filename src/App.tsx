@@ -403,7 +403,7 @@ const App: React.FC = () => {
     // Weighted Category Mapping
     const categoryMap: { [key: string]: { keywords: string[], weight: number } } = {
       'อาหารและเครื่องดื่ม': {
-        keywords: ['กิน', 'ข้าว', 'น้ำ', 'กาแฟ', 'อร่อย', 'ชา', 'ขนม', 'ส้มตำ', 'ก๋วยเตี๋ยว', 'บุฟเฟต์', 'บุฟเฟ่ต์', 'มื้อ', 'อาหาร', 'ค่าอาหาร', 'GrabFood', 'Lineman', 'Foodpanda', 'ShopeeFood', 'เซเว่น', 'คาเฟ่', 'KFC', 'McDonald', 'Starbucks'],
+        keywords: ['กิน', 'ทอด', 'ย่าง', 'ปิ้ง', 'ข้าว', 'น้ำ', 'กาแฟ', 'อร่อย', 'ชา', 'ขนม', 'ส้มตำ', 'ก๋วยเตี๋ยว', 'บุฟเฟต์', 'บุฟเฟ่ต์', 'มื้อ', 'อาหาร', 'ค่าอาหาร', 'GrabFood', 'Lineman', 'Foodpanda', 'ShopeeFood', 'เซเว่น', 'คาเฟ่', 'KFC', 'McDonald', 'Starbucks'],
         weight: 1.2
       },
       'การเดินทาง': {
@@ -426,7 +426,7 @@ const App: React.FC = () => {
         weight: 1.4
       },
       'บันเทิง': {
-        keywords: ['หนัง', 'ดูหนัง', 'คอนเสิร์ต', 'เกม', 'เติมเกม', 'ปาร์ตี้', 'เหล้า', 'เบียร์', 'คาราโอเกะ', 'Netflix', 'Spotify', 'Youtube Premium', 'Cinema'],
+        keywords: ['ดูหนัง', 'คอนเสิร์ต', 'เกม', 'เติมเกม', 'ปาร์ตี้', 'เหล้า', 'เบียร์', 'คาราโอเกะ', 'Netflix', 'Spotify', 'Youtube Premium', 'Cinema', 'แพคเก็จ'],
         weight: 1.1
       },
       'ช็อปปิ้ง': {
@@ -485,6 +485,9 @@ const App: React.FC = () => {
       const categoryMapping: { [key: string]: string } = {
         'อาหาร': 'อาหารและเครื่องดื่ม',
         'กิน': 'อาหารและเครื่องดื่ม',
+        'ทอด': 'อาหารและเครื่องดื่ม',
+        'ย่าง': 'อาหารและเครื่องดื่ม',
+        'ปิ้ง': 'อาหารและเครื่องดื่ม',
         'เดินทาง': 'การเดินทาง',
         'รถ': 'การเดินทาง',
         'จำเป็น': 'ของใช้จำเป็น',
@@ -1240,15 +1243,15 @@ const App: React.FC = () => {
         {theme === 'bento-color' ? (
           <div className="bento-color-view fade-in">
             {/* Segmented Control */}
-            <div className="segmented-control">
+            {/* <div className="segmented-control">
               <button className="segment-btn active"><div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 4px)', gap: '2px' }}>{Array(4).fill(0).map((_, i) => <div key={i} style={{ width: '4px', height: '4px', background: 'currentColor' }}></div>)}</div> Grid</button>
               <button className="segment-btn"><div style={{ display: 'flex', gap: '2px' }}>{Array(6).fill(0).map((_, i) => <div key={i} style={{ width: '3px', height: '3px', background: 'currentColor', borderRadius: '50%' }}></div>)}</div> Swarm</button>
               <button className="segment-btn"><div style={{ display: 'flex', gap: '2px' }}>{Array(3).fill(0).map((_, i) => <div key={i} style={{ width: '5px', height: '5px', border: '1px solid currentColor', borderRadius: '50%' }}></div>)}</div> Bubbles</button>
-            </div>
+            </div>*/}
 
             <div className="bento-grid">
               {/* Main Chat/Input Card */}
-              <div className={`${cardClass} large`} style={{ display: 'flex', flexDirection: 'column', gap: '8px', minHeight: '160px', background: 'white' }}>
+              {/* <div className={`${cardClass} large`} style={{ display: 'flex', flexDirection: 'column', gap: '8px', minHeight: '160px', background: 'white' }}>
                 <div className="no-scrollbar" style={{ height: '100px', overflowY: 'auto' }} ref={scrollRef}>
                   <div className="chat-container">
                     {messages.map(msg => (
@@ -1276,7 +1279,7 @@ const App: React.FC = () => {
                     <button className="chat-send-btn" onClick={handleSendMessage} style={{ background: '#1a1b25' }}><Send size={16} color="white" /></button>
                   </div>
                 </div>
-              </div>
+              </div>*/}
 
               {/* Dynamic Category Cards */}
               {Object.entries(
@@ -1287,7 +1290,7 @@ const App: React.FC = () => {
                   return acc;
                 }, {} as { [key: string]: number })
               ).sort((a, b) => b[1] - a[1]).map(([cat, amount], idx) => {
-                const colors = ['card-pink', 'card-mint', 'card-blue', 'card-cyan'];
+                const colors = ['card-pink', 'card-mint', 'card-blue', 'card-cyan', 'card-orange', 'card-yellow', 'card-purple', 'card-red', 'card-green'];//'card-red', 'card-green', 
                 const colorClass = colors[idx % colors.length];
                 const percentage = totalExpense > 0 ? Math.round((amount / totalExpense) * 100) : 0;
 
