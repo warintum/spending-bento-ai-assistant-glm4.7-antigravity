@@ -407,15 +407,15 @@ const App: React.FC = () => {
         weight: 1.2
       },
       'การเดินทาง': {
-        keywords: ['รถ', 'น้ำมัน', 'วิน', 'แท็กซี่', 'BTS', 'MRT', 'เรือ', 'ตั๋วเครื่องบิน', 'ทางด่วน', 'ที่จอดรถ', 'GrabCar', 'Bolt', 'ล้างรถ', 'ซ่อมรถ', 'ปั๊ม', 'เติมน้ำมัน'],
-        weight: 1.0
+        keywords: ['รถ', 'น้ำมัน', 'วิน', 'แท็กซี่', 'BTS', 'MRT', 'เรือ', 'ตั๋วเครื่องบิน', 'ทางด่วน', 'ที่จอดรถ', 'GrabCar', 'Bolt', 'ล้างรถ', 'ซ่อมรถ', 'ปั๊ม', 'เติมน้ำมัน', 'PT', 'TOYOTA', 'Shell', 'Bangchak', 'PTT', 'CALTEX', 'Esso', 'Susco'],
+        weight: 1.2
       },
       'ของใช้จำเป็น': {
-        keywords: ['ทิชชู่', 'สบู่', 'ยาสีฟัน', 'ผงซักฟอก', 'ของแห้ง', 'ตลาด', 'ซุปเปอร์', 'ของใช้ส่วนตัว', 'ผ้าอนามัย', 'แชมพู', 'โลตัส', 'บิ๊กซี', 'Lotus', 'BigC', 'Watson', 'CJ'],
+        keywords: ['ทิชชู่', 'สบู่', 'ยาสีฟัน', 'ผงซักฟอก', 'ของแห้ง', 'ตลาด', 'ซุปเปอร์', 'ของใช้ส่วนตัว', 'ผ้าอนามัย', 'แชมพู', 'โลตัส', 'บิ๊กซี', 'Lotus', 'LOTUS', 'BigC', 'BIGC', 'Watson', 'CJ', '7-Eleven', 'CP FreshMart'],
         weight: 1.0
       },
       'สุขภาพ': {
-        keywords: ['ยา', 'หมอ', 'โรงพยาบาล', 'คลินิก', 'วิตามิน', 'หมอฟัน', 'หาหมอ', 'ฟิตเนส', 'แว่นตา', 'ตรวจสุขภาพ', 'Pharmacy', 'Health'],
+        keywords: ['ยา', 'หมอ', 'โรงพยาบาล', 'คลินิก', 'วิตามิน', 'หมอฟัน', 'หาหมอ', 'ฟิตเนส', 'แว่นตา', 'ตรวจสุขภาพ', 'Pharmacy', 'Health', 'Allianz', 'AIA', 'FWD', 'Prudential', 'LIFE', 'ประกัน', 'MSIG', 'Insurance', 'KGIB'],
         weight: 1.5 // Health keywords are usually very specific
       },
       'สินเชื่อ บัตรเครดิต': {
@@ -445,7 +445,7 @@ const App: React.FC = () => {
     for (const [cat, config] of Object.entries(categoryMap)) {
       let matches = 0;
       config.keywords.forEach(k => {
-        if (text.includes(k)) {
+        if (text.toUpperCase().includes(k.toUpperCase())) {
           matches++;
         }
       });
@@ -694,12 +694,71 @@ const App: React.FC = () => {
 
         console.log("Scanned Text:", text);
 
-        // 0. Detect Bank
+        // 0. Detect Bank (Improved)
         let detectedBank = 'Unknown';
         if (text.includes('KASIKORNBANK') || text.includes('กสิกรไทย')) detectedBank = 'KBank';
         else if (text.includes('SCB') || text.includes('ไทยพาณิชย์')) detectedBank = 'SCB';
         else if (text.includes('Krungthai') || text.includes('กรุงไทย')) detectedBank = 'Krungthai';
         else if (text.includes('Bangkok Bank') || text.includes('กรุงเทพ')) detectedBank = 'BBL';
+        else if (text.includes('Krungsri') || text.includes('บัตรเครดิต/สินเชื่อ')) detectedBank = 'Krungsri';
+
+        // --- MULTI-TRANSACTION STATEMENT DETECTION ---
+        const rowRegex = /([ก-๙a-zA-Z0-9_.\s\(\)-:/&']+?)\s+([\d,]+\.\d{2})\s*(?:บาท|THB|thb|บาก|บ|ฯ)?/gi;
+        const multiTxFound: Transaction[] = [];
+        let rowMatch;
+
+        const simplifyMerchantName = (name: string) => {
+          const upperName = name.toUpperCase();
+          if (upperName.includes('PT ') || upperName.includes('PT.')) return 'เติมน้ำมัน PT';
+          if (upperName.includes('SHELL')) return 'เติมน้ำมัน Shell';
+          if (upperName.includes('BANGCHAK')) return 'เติมน้ำมัน บางจาก';
+          if (upperName.includes('PTT')) return 'เติมน้ำมัน PTT';
+          if (upperName.includes('CALTEX')) return 'เติมน้ำมัน Caltex';
+          if (upperName.includes('ESSO')) return 'เติมน้ำมัน Esso';
+          if (upperName.includes('TOYOTA')) return 'เช็ครถ TOYOTA';
+          if (upperName.includes('ALLIANZ') || upperName.includes('KGIB')) return 'ประกัน Allianz';
+          if (upperName.includes('MSIG')) return 'ประกัน MSIG';
+          if (upperName.includes('BANGKOK LIFE')) return 'ประกัน Bangkok Life';
+          if (upperName.includes('7-ELEVEN')) return '7-Eleven';
+          if (upperName.includes('LOTUS\'S') || upperName.includes('LOTUS')) return 'Lotus';
+          if (upperName.includes('BIGC')) return 'BigC';
+          if (upperName.includes('WATSON')) return 'Watson';
+          if (upperName.includes('CJ')) return 'CJ';
+          if (upperName.includes('CP')) return 'CP';
+          return name;
+        };
+
+        while ((rowMatch = rowRegex.exec(text)) !== null) {
+          let rawName = rowMatch[1].trim();
+          const rawAmount = parseFloat(rowMatch[2].replace(/,/g, ''));
+
+          // Clean names of leading dates interleaved from OCR (e.g. "05 ธ.ค.")
+          rawName = rawName.replace(/^\d{2}\s+[ก-๙]{1,3}\.?\s*/, '').trim();
+
+          if (rawName.length < 3) continue;
+
+          const category = getCategoryFromText(rawName, 'expense', rawName);
+          const simplifiedName = simplifyMerchantName(rawName);
+
+          multiTxFound.push({
+            id: (Date.now() + Math.random()).toString(),
+            amount: rawAmount,
+            type: 'expense',
+            category: category,
+            date: extractDate(text) || new Date().toLocaleDateString('th-TH'),
+            note: `${simplifiedName} (จ่ายบัตร)`,
+            receiverName: rawName
+          });
+        }
+
+        if (multiTxFound.length > 0) {
+          setScanResults(prev => [...multiTxFound, ...prev]);
+          totalFoundCount += multiTxFound.length;
+          totalFoundAmount += multiTxFound.reduce((sum, tx) => sum + tx.amount, 0);
+          setScanSummary({ count: totalFoundCount, total: totalFoundAmount });
+          continue;
+        }
+        // --- END MULTI-TRANSACTION LOGIC ---
 
         // Improved Amount Extraction Logic
         let possibleAmounts: { val: number, score: number }[] = [];
@@ -746,6 +805,7 @@ const App: React.FC = () => {
 
             // Check if this number is the one mentioned in the GLO slip format "240 บาท"
             // We already did unit scan, but let's add generalized scoring for numbers
+            if (val < 10 && !raw.includes('.')) score -= 50;
             possibleAmounts.push({ val, score });
           });
         }
