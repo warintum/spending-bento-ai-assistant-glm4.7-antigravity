@@ -77,8 +77,8 @@ const App: React.FC = () => {
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
 
-  const [theme, setTheme] = useState<'glass' | 'oled' | 'neon' | 'neon-orange' | 'neon-blue' | 'neon-red'>(() => {
-    return (localStorage.getItem('bento-theme') as 'glass' | 'oled' | 'neon' | 'neon-orange' | 'neon-blue' | 'neon-red') || 'glass';
+  const [theme, setTheme] = useState<'glass' | 'oled' | 'neon' | 'neon-orange' | 'neon-blue' | 'neon-red' | 'bento-color'>(() => {
+    return (localStorage.getItem('bento-theme') as any) || 'glass';
   });
 
   // User Behavior Learning State
@@ -196,7 +196,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     localStorage.setItem('bento-theme', theme);
-    document.body.classList.remove('theme-oled', 'theme-neon', 'theme-neon-orange', 'theme-neon-blue', 'theme-neon-red');
+    document.body.classList.remove('theme-oled', 'theme-neon', 'theme-neon-orange', 'theme-neon-blue', 'theme-neon-red', 'theme-bento-color');
     if (theme !== 'glass') document.body.classList.add(`theme-${theme}`);
   }, [theme]);
 
@@ -228,6 +228,19 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('bento-category-prefs', JSON.stringify(categoryPreferences));
   }, [categoryPreferences]);
+
+  // Auto-Save when ending with "บาท"
+  useEffect(() => {
+    const trimmedInput = chatInput.trim();
+    if (trimmedInput.endsWith('บาท') && trimmedInput.length > 3) {
+      const timer = setTimeout(() => {
+        if (chatInput.trim().endsWith('บาท')) {
+          handleSendMessage();
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [chatInput]);
 
   const totalBalance = transactions.reduce((acc, curr) =>
     curr.type === 'income' ? acc + curr.amount : acc - curr.amount, 0);
@@ -464,25 +477,71 @@ const App: React.FC = () => {
 
     if (incomeKeywords.some(k => text.includes(k))) type = 'income';
 
-    const category = getCategoryFromText(text, type);
+    // หมวด Extraction Logic
+    let category = getCategoryFromText(text, type);
+    const categoryMatch = text.match(/หมวด\s*([ก-๙a-zA-Z]+)/);
+    if (categoryMatch) {
+      const catKeyword = categoryMatch[1];
+      const categoryMapping: { [key: string]: string } = {
+        'อาหาร': 'อาหารและเครื่องดื่ม',
+        'กิน': 'อาหารและเครื่องดื่ม',
+        'เดินทาง': 'การเดินทาง',
+        'รถ': 'การเดินทาง',
+        'จำเป็น': 'ของใช้จำเป็น',
+        'ใช้จ่าย': 'ของใช้จำเป็น',
+        'สุขภาพ': 'สุขภาพ',
+        'ยา': 'สุขภาพ',
+        'หนี้': 'สินเชื่อ บัตรเครดิต',
+        'บัตร': 'สินเชื่อ บัตรเครดิต',
+        'บันเทิง': 'บันเทิง',
+        'เกม': 'บันเทิง',
+        'ช้อปปิ้ง': 'ช็อปปิ้ง',
+        'ซื้อของ': 'ช็อปปิ้ง',
+        'บ้าน': 'ของใช้ในบ้าน',
+        'น้ำไฟ': 'สาธารณูปโภค'
+      };
+
+      // Search for the best match in the mapping
+      for (const [key, val] of Object.entries(categoryMapping)) {
+        if (catKeyword.includes(key)) {
+          category = val;
+          break;
+        }
+      }
+    }
 
     // Fix: Escape the dot in 'บ.' to match literal 'บ.' and not wildcard any character
-    let note = text.replace(/[\d,]+/g, '').replace(/บาท|บ\./g, '').trim();
+    // Also remove "หมวด <category>" from note
+    let note = text.replace(/[\d,]+/g, '')
+      .replace(/บาท|บ\./g, '')
+      .replace(/หมวด\s*[ก-๙a-zA-Z]+/g, '')
+      .trim();
     if (!note) note = type === 'income' ? 'รายรับเพิ่มขึ้น' : 'รายจ่ายใหม่';
     return { amount, type, note, category };
   };
 
   const handleSendMessage = () => {
-    if (!chatInput.trim()) return;
-    const userMsg: Message = { id: Date.now().toString(), text: chatInput, sender: 'user' };
+    const text = chatInput.trim();
+    if (!text) return;
+
+    // Clear immediately to prevent double-save and persistent text bug
+    setChatInput('');
+
+    const userMsg: Message = { id: Date.now().toString(), text: text, sender: 'user' };
     setMessages(prev => [...prev, userMsg]);
-    const parsed = parseNaturalLanguage(chatInput);
+
+    const parsed = parseNaturalLanguage(text);
     if (parsed) {
       const newTx: Transaction = {
-        id: (Date.now() + 1).toString(), amount: parsed.amount, type: parsed.type,
-        category: parsed.category, date: new Date().toLocaleDateString('th-TH'), note: parsed.note
+        id: (Date.now() + 1).toString(),
+        amount: parsed.amount,
+        type: parsed.type,
+        category: parsed.category,
+        date: new Date().toLocaleDateString('th-TH'),
+        note: parsed.note
       };
-      setTransactions([newTx, ...transactions]);
+      setTransactions(prev => [newTx, ...prev]);
+
       const botMsg: Message = {
         id: (Date.now() + 2).toString(),
         text: `บันทึก${parsed.type === 'income' ? 'รายรับ' : 'รายจ่าย'} ${parsed.amount.toLocaleString()} บาท ใน ${parsed.category} แล้วครับ! ✅`,
@@ -492,7 +551,6 @@ const App: React.FC = () => {
     } else {
       setMessages(prev => [...prev, { id: 'bot-err', text: 'ขอโทษครับ ลองพิมพ์เป็น "ค่าอาหาร 50" นะครับ', sender: 'bot' }]);
     }
-    setChatInput('');
   };
 
   const deleteTransaction = (id: string) => {
@@ -520,7 +578,7 @@ const App: React.FC = () => {
   };
 
   const toggleTheme = () => {
-    const themes: ('glass' | 'oled' | 'neon' | 'neon-orange' | 'neon-blue' | 'neon-red')[] = ['glass', 'oled', 'neon', 'neon-orange', 'neon-blue', 'neon-red'];
+    const themes: ('glass' | 'oled' | 'neon' | 'neon-orange' | 'neon-blue' | 'neon-red' | 'bento-color')[] = ['glass', 'oled', 'neon', 'neon-orange', 'neon-blue', 'neon-red', 'bento-color'];
     const nextIndex = (themes.indexOf(theme) + 1) % themes.length;
     setTheme(themes[nextIndex]);
   };
@@ -1179,172 +1237,275 @@ const App: React.FC = () => {
           </div>
         )}
 
-        <div className="bento-grid">
-          <div className={`${cardClass} large glow`}>
-            <p className="text-xs">ยอดเงินคงเหลือ</p>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginTop: '4px' }}>
-              <span className="text-huge">{totalBalance < 0 ? '-' : ''}฿{Math.floor(Math.abs(totalBalance)).toLocaleString()}</span>
-              <span className="text-base text-teal">.{(Math.abs(totalBalance) % 1).toFixed(2).split('.')[1]}</span>
+        {theme === 'bento-color' ? (
+          <div className="bento-color-view fade-in">
+            {/* Segmented Control */}
+            <div className="segmented-control">
+              <button className="segment-btn active"><div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 4px)', gap: '2px' }}>{Array(4).fill(0).map((_, i) => <div key={i} style={{ width: '4px', height: '4px', background: 'currentColor' }}></div>)}</div> Grid</button>
+              <button className="segment-btn"><div style={{ display: 'flex', gap: '2px' }}>{Array(6).fill(0).map((_, i) => <div key={i} style={{ width: '3px', height: '3px', background: 'currentColor', borderRadius: '50%' }}></div>)}</div> Swarm</button>
+              <button className="segment-btn"><div style={{ display: 'flex', gap: '2px' }}>{Array(3).fill(0).map((_, i) => <div key={i} style={{ width: '5px', height: '5px', border: '1px solid currentColor', borderRadius: '50%' }}></div>)}</div> Bubbles</button>
             </div>
-            <Wallet size={24} className="text-teal" style={{ position: 'absolute', top: '20px', right: '20px', opacity: 0.8 }} />
-          </div>
 
-          <div className={cardClass}>
-            <TrendingUp size={24} className="text-teal" />
-            <p className="text-xs" style={{ marginTop: '12px' }}>รายรับ</p>
-            <p className="text-lg">฿{totalIncome.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
-          </div>
+            <div className="bento-grid">
+              {/* Main Chat/Input Card */}
+              <div className={`${cardClass} large`} style={{ display: 'flex', flexDirection: 'column', gap: '8px', minHeight: '160px', background: 'white' }}>
+                <div className="no-scrollbar" style={{ height: '100px', overflowY: 'auto' }} ref={scrollRef}>
+                  <div className="chat-container">
+                    {messages.map(msg => (
+                      <div key={msg.id} className={`message ${msg.sender}`} style={{
+                        background: msg.sender === 'user' ? '#1a1b25' : '#f1f5f9',
+                        color: msg.sender === 'user' ? 'white' : '#1a1b25',
+                        borderRadius: '16px',
+                        padding: '10px 14px',
+                        fontSize: '0.8rem'
+                      }}>{msg.text}</div>
+                    ))}
+                  </div>
+                </div>
+                <div className="chat-input-wrapper" style={{ background: '#f8faff', border: '1px solid #e2e8f0' }}>
+                  <input
+                    className="chat-input" placeholder="บันทึกรายการ..."
+                    style={{ color: '#1a1b25' }}
+                    value={chatInput} onChange={e => setChatInput(e.target.value)}
+                    onKeyPress={e => e.key === 'Enter' && handleSendMessage()}
+                  />
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button className="chat-send-btn" style={{ background: '#e2e8f0', color: '#1a1b25' }} onClick={() => scanFileInputRef.current?.click()}>
+                      <ImageIcon size={18} />
+                    </button>
+                    <button className="chat-send-btn" onClick={handleSendMessage} style={{ background: '#1a1b25' }}><Send size={16} color="white" /></button>
+                  </div>
+                </div>
+              </div>
 
-          <div className={cardClass}>
-            <TrendingDown size={24} className="text-coral" />
-            <p className="text-xs" style={{ marginTop: '12px' }}>รายจ่าย</p>
-            <p className="text-lg">฿{totalExpense.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
-          </div>
+              {/* Dynamic Category Cards */}
+              {Object.entries(
+                transactions.reduce((acc, tx) => {
+                  if (tx.type === 'expense') {
+                    acc[tx.category] = (acc[tx.category] || 0) + tx.amount;
+                  }
+                  return acc;
+                }, {} as { [key: string]: number })
+              ).sort((a, b) => b[1] - a[1]).map(([cat, amount], idx) => {
+                const colors = ['card-pink', 'card-mint', 'card-blue', 'card-cyan'];
+                const colorClass = colors[idx % colors.length];
+                const percentage = totalExpense > 0 ? Math.round((amount / totalExpense) * 100) : 0;
 
-          <div className={`${cardClass} large`} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div className="no-scrollbar" style={{ height: '200px', overflowY: 'auto' }} ref={scrollRef}>
-              <div className="chat-container">
-                {messages.map(msg => (
-                  <div key={msg.id} className={`message ${msg.sender}`}>{msg.text}</div>
-                ))}
+                // Icon mapping
+                const getIcon = (category: string) => {
+                  if (category.includes('อาหาร')) return <Utensils size={24} />;
+                  if (category.includes('เดินทาง')) return <Car size={24} />;
+                  if (category.includes('บันเทิง')) return <PlayCircle size={24} />;
+                  if (category.includes('สุขภาพ')) return <HeartPulse size={24} />;
+                  if (category.includes('ช็อปปิ้ง')) return <ShoppingBag size={24} />;
+                  if (category.includes('สินเชื่อ')) return <CreditCard size={24} />;
+                  return <Sparkles size={24} />;
+                };
+
+                return (
+                  <div key={cat} className={`bento-card ${idx === 0 ? 'large' : ''} ${colorClass}`}>
+                    <div className="service-card">
+                      <div className="service-badge">{percentage}%</div>
+                      <div className="service-icon-box" style={{ background: 'white' }}>
+                        <div style={{ color: '#1a1b25' }}>{getIcon(cat)}</div>
+                      </div>
+                      <div>
+                        <h3 className="service-title" style={{ fontSize: idx === 0 ? '0.85rem' : '0.7rem' }}>{cat}</h3>
+                        <div className="service-amount" style={{ fontSize: idx === 0 ? '1.75rem' : '1.25rem' }}>฿{amount.toLocaleString()}</div>
+                        {idx === 0 && <div className="service-subtext">~฿{(amount * 12).toLocaleString()}/yr</div>}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Summary Block */}
+            <div className="bento-summary">
+              <div className="summary-item">
+                <div className="summary-label">Total / Month</div>
+                <div className="summary-value">฿{totalExpense.toLocaleString()}</div>
+              </div>
+              <div className="summary-item">
+                <div className="summary-label">Yearly Projection</div>
+                <div className="summary-value accent">฿{(totalExpense * 12).toLocaleString()}</div>
               </div>
             </div>
-            <div className="chat-input-wrapper">
-              <input
-                className="chat-input" placeholder="บอกรายการที่นี่..."
-                value={chatInput} onChange={e => setChatInput(e.target.value)}
-                onKeyPress={e => e.key === 'Enter' && handleSendMessage()}
-              />
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button className="chat-send-btn" style={{ background: 'rgba(255,255,255,0.1)', color: 'white' }} onClick={() => scanFileInputRef.current?.click()} title="สแกนสลิป">
-                  <ImageIcon size={18} />
-                </button>
-                <button className="chat-send-btn" onClick={handleSendMessage}><Send size={16} color="black" /></button>
-              </div>
-              <input type="file" ref={scanFileInputRef} hidden accept="image/*" multiple onChange={handleSlipUpload} />
-            </div>
-          </div>
 
-          <div style={{ gridColumn: 'span 2', marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 className="text-sm" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><History size={16} /> รายการล่าสุด</h2>
-            {transactions.length > 5 && (
-              <button onClick={() => setViewAll(!viewAll)} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                {viewAll ? <><ChevronUp size={14} /> แสดงน้อยลง</> : <><ChevronDown size={14} /> ดูทั้งหมด</>}
+            <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+              <button className="action-btn" onClick={toggleTheme} style={{ margin: '0 auto', background: '#1a1b25', color: 'white', padding: '12px 24px', borderRadius: '16px', gap: '8px' }}>
+                <Sparkles size={18} /> Switch Theme
               </button>
-            )}
+            </div>
           </div>
+        ) : (
+          <div className="bento-grid">
+            <div className={`${cardClass} large glow`}>
+              <p className="text-xs">ยอดเงินคงเหลือ</p>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginTop: '4px' }}>
+                <span className="text-huge">{totalBalance < 0 ? '-' : ''}฿{Math.floor(Math.abs(totalBalance)).toLocaleString()}</span>
+                <span className="text-base text-teal">.{(Math.abs(totalBalance) % 1).toFixed(2).split('.')[1]}</span>
+              </div>
+              <Wallet size={24} className="text-teal" style={{ position: 'absolute', top: '20px', right: '20px', opacity: 0.8 }} />
+            </div>
 
-          {displayedTransactions.map(tx => (
-            <React.Fragment key={tx.id}>
-              <div className={`${cardClass} large`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', gap: '12px' }}>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flex: 1, minWidth: 0 }}>
-                  <div style={{ flexShrink: 0, padding: '8px', borderRadius: '10px', background: tx.type === 'income' ? 'rgba(45, 212, 191, 0.1)' : 'rgba(251, 113, 133, 0.1)' }}>
-                    {tx.type === 'income' ? <ArrowUpRight size={18} className="text-teal" /> : <ArrowDownLeft size={18} className="text-coral" />}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <p className="text-sm" style={{
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        maxWidth: '100%'
-                      }}>
-                        {tx.note}
-                      </p>
-                      <span style={{
-                        fontSize: '0.55rem',
-                        opacity: 0.6,
-                        background: 'rgba(255,255,255,0.08)',
-                        padding: '1px 6px',
-                        borderRadius: '4px',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        whiteSpace: 'nowrap'
-                      }}>
-                        {tx.category}
-                      </span>
-                    </div>
-                    <p style={{ fontSize: '0.6rem', opacity: 0.5 }}>{tx.date}</p>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
-                  <p className={`text-lg ${tx.type === 'income' ? 'text-teal' : 'text-coral'}`} style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
-                    {tx.type === 'income' ? '+' : '-'}฿{tx.amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                  </p>
-                  <div style={{ display: 'flex', gap: '4px' }}>
-                    <button className="action-btn edit" style={{ padding: '6px' }} onClick={() => setEditingTx(editingTx?.id === tx.id ? null : tx)}><Edit2 size={14} /></button>
-                    <button className="action-btn delete" style={{ padding: '6px' }} onClick={() => deleteTransaction(tx.id)}><Trash2 size={14} /></button>
-                  </div>
+            <div className={cardClass}>
+              <TrendingUp size={24} className="text-teal" />
+              <p className="text-xs" style={{ marginTop: '12px' }}>รายรับ</p>
+              <p className="text-lg">฿{totalIncome.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
+            </div>
+
+            <div className={cardClass}>
+              <TrendingDown size={24} className="text-coral" />
+              <p className="text-xs" style={{ marginTop: '12px' }}>รายจ่าย</p>
+              <p className="text-lg">฿{totalExpense.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
+            </div>
+
+            <div className={`${cardClass} large`} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div className="no-scrollbar" style={{ height: '200px', overflowY: 'auto' }} ref={scrollRef}>
+                <div className="chat-container">
+                  {messages.map(msg => (
+                    <div key={msg.id} className={`message ${msg.sender}`}>{msg.text}</div>
+                  ))}
                 </div>
               </div>
-              {editingTx?.id === tx.id && (
-                <div className="inline-edit-area">
-                  <div className="inline-row">
-                    <div className="neon-input-group" style={{ flex: 1 }}>
-                      <label className="text-xs">จำนวนเงิน (฿)</label>
-                      <input type="number" step="any" className="neon-input" value={editingTx.amount} onChange={e => setEditingTx({ ...editingTx, amount: parseFloat(e.target.value) || 0 })} />
+              <div className="chat-input-wrapper">
+                <input
+                  className="chat-input" placeholder="บอกรายการที่นี่..."
+                  value={chatInput} onChange={e => setChatInput(e.target.value)}
+                  onKeyPress={e => e.key === 'Enter' && handleSendMessage()}
+                />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button className="chat-send-btn" style={{ background: 'rgba(255,255,255,0.1)', color: 'white' }} onClick={() => scanFileInputRef.current?.click()} title="สแกนสลิป">
+                    <ImageIcon size={18} />
+                  </button>
+                  <button className="chat-send-btn" onClick={handleSendMessage}><Send size={16} color="black" /></button>
+                </div>
+                <input type="file" ref={scanFileInputRef} hidden accept="image/*" multiple onChange={handleSlipUpload} />
+              </div>
+            </div>
+
+            <div style={{ gridColumn: 'span 2', marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 className="text-sm" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><History size={16} /> รายการล่าสุด</h2>
+              {transactions.length > 5 && (
+                <button onClick={() => setViewAll(!viewAll)} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  {viewAll ? <><ChevronUp size={14} /> แสดงน้อยลง</> : <><ChevronDown size={14} /> ดูทั้งหมด</>}
+                </button>
+              )}
+            </div>
+
+            {displayedTransactions.map(tx => (
+              <React.Fragment key={tx.id}>
+                <div className={`${cardClass} large`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', gap: '12px' }}>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flex: 1, minWidth: 0 }}>
+                    <div style={{ flexShrink: 0, padding: '8px', borderRadius: '10px', background: tx.type === 'income' ? 'rgba(45, 212, 191, 0.1)' : 'rgba(251, 113, 133, 0.1)' }}>
+                      {tx.type === 'income' ? <ArrowUpRight size={18} className="text-teal" /> : <ArrowDownLeft size={18} className="text-coral" />}
                     </div>
-                    <div className="neon-input-group" style={{ flex: 1 }}>
-                      <label className="text-xs">บันทึกช่วยจำ</label>
-                      <input className="neon-input" value={editingTx.note} onChange={e => setEditingTx({ ...editingTx, note: e.target.value })} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <p className="text-sm" style={{
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          maxWidth: '100%'
+                        }}>
+                          {tx.note}
+                        </p>
+                        <span style={{
+                          fontSize: '0.55rem',
+                          opacity: 0.6,
+                          background: 'rgba(255,255,255,0.08)',
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {tx.category}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '0.6rem', opacity: 0.5 }}>{tx.date}</p>
                     </div>
                   </div>
-                  <div className="inline-row">
-                    <div className="neon-toggle-container">
-                      <label className="text-xs">ประเภท</label>
-                      <div className={`neon-toggle ${editingTx.type}`} onClick={() => setEditingTx({ ...editingTx, type: editingTx.type === 'income' ? 'expense' : 'income' })}>
-                        <div className="toggle-thumb"></div><span className="toggle-label">{editingTx.type === 'income' ? 'รายรับ' : 'รายจ่าย'}</span>
-                      </div>
-                    </div>
-                    <div className="neon-input-group" style={{ flex: 1 }}>
-                      <label className="text-xs">หมวดหมู่</label>
-                      <div className="category-icon-grid" style={{ gridColumn: 'span 2' }}>
-                        {editingTx.type === 'income' ? (
-                          <div className="category-option active">
-                            <div className="icon-wrap cat-income"><TrendingUp size={20} /></div>
-                            <span className="cat-label">รายได้</span>
-                          </div>
-                        ) : (
-                          [
-                            { id: 'อาหารและเครื่องดื่ม', label: 'อาหาร', icon: <Utensils size={20} />, class: 'cat-food' },
-                            { id: 'การเดินทาง', label: 'เดินทาง', icon: <Car size={20} />, class: 'cat-transport' },
-                            { id: 'ของใช้จำเป็น', label: 'จำเป็น', icon: <Package size={20} />, class: 'cat-essential' },
-                            { id: 'ช็อปปิ้ง', label: 'ช้อปปิ้ง', icon: <ShoppingBag size={20} />, class: 'cat-shop' },
-                            { id: 'บันเทิง', label: 'บันเทิง', icon: <PlayCircle size={20} />, class: 'cat-ent' },
-                            { id: 'ของใช้ในบ้าน', label: 'บ้าน', icon: <Home size={20} />, class: 'cat-home' },
-                            { id: 'สุขภาพ', label: 'สุขภาพ', icon: <HeartPulse size={20} />, class: 'cat-health' },
-                            { id: 'ครอบครัว', label: 'ครอบครัว', icon: <Users size={20} />, class: 'cat-family' },
-                            { id: 'ท่องเที่ยว', label: 'ท่องเที่ยว', icon: <Palmtree size={20} />, class: 'cat-travel' },
-                            { id: 'การศึกษา', label: 'ศึกษา', icon: <GraduationCap size={20} />, class: 'cat-edu' },
-                            { id: 'สินเชื่อ บัตรเครดิต', label: 'สินเชื่อ', icon: <CreditCard size={20} />, class: 'cat-debt' },
-                            { id: 'ค่าโทรศัพท์', label: 'โทรศัพท์', icon: <Phone size={20} />, class: 'cat-phone' },
-                            { id: 'งาน', label: 'งาน', icon: <Briefcase size={20} />, class: 'cat-work' },
-                            { id: 'เงินออม', label: 'เงินออม', icon: <Coins size={20} />, class: 'cat-save' },
-                            { id: 'อื่นๆ', label: 'อื่นๆ', icon: <MoreHorizontal size={20} />, class: 'cat-other' }
-                          ].map(cat => (
-                            <div
-                              key={cat.id}
-                              className={`category-option ${editingTx.category === cat.id ? 'active' : ''}`}
-                              onClick={() => setEditingTx({ ...editingTx, category: cat.id })}
-                            >
-                              <div className={`icon-wrap ${cat.class}`}>{cat.icon}</div>
-                              <span className="cat-label">{cat.label}</span>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="inline-row" style={{ justifyContent: 'flex-end' }}>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button className="neon-btn primary" onClick={updateTransaction}>บันทึก</button>
-                      <button className="neon-btn secondary" onClick={() => setEditingTx(null)}>ยกเลิก</button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+                    <p className={`text-lg ${tx.type === 'income' ? 'text-teal' : 'text-coral'}`} style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
+                      {tx.type === 'income' ? '+' : '-'}฿{tx.amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                    </p>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button className="action-btn edit" style={{ padding: '6px' }} onClick={() => setEditingTx(editingTx?.id === tx.id ? null : tx)}><Edit2 size={14} /></button>
+                      <button className="action-btn delete" style={{ padding: '6px' }} onClick={() => deleteTransaction(tx.id)}><Trash2 size={14} /></button>
                     </div>
                   </div>
                 </div>
-              )}
-            </React.Fragment>
-          ))}
-        </div>
+                {editingTx?.id === tx.id && (
+                  <div className="inline-edit-area">
+                    <div className="inline-row">
+                      <div className="neon-input-group" style={{ flex: 1 }}>
+                        <label className="text-xs">จำนวนเงิน (฿)</label>
+                        <input type="number" step="any" className="neon-input" value={editingTx.amount} onChange={e => setEditingTx({ ...editingTx, amount: parseFloat(e.target.value) || 0 })} />
+                      </div>
+                      <div className="neon-input-group" style={{ flex: 1 }}>
+                        <label className="text-xs">บันทึกช่วยจำ</label>
+                        <input className="neon-input" value={editingTx.note} onChange={e => setEditingTx({ ...editingTx, note: e.target.value })} />
+                      </div>
+                    </div>
+                    <div className="inline-row">
+                      <div className="neon-toggle-container">
+                        <label className="text-xs">ประเภท</label>
+                        <div className={`neon-toggle ${editingTx.type}`} onClick={() => setEditingTx({ ...editingTx, type: editingTx.type === 'income' ? 'expense' : 'income' })}>
+                          <div className="toggle-thumb"></div><span className="toggle-label">{editingTx.type === 'income' ? 'รายรับ' : 'รายจ่าย'}</span>
+                        </div>
+                      </div>
+                      <div className="neon-input-group" style={{ flex: 1 }}>
+                        <label className="text-xs">หมวดหมู่</label>
+                        <div className="category-icon-grid" style={{ gridColumn: 'span 2' }}>
+                          {editingTx.type === 'income' ? (
+                            <div className="category-option active">
+                              <div className="icon-wrap cat-income"><TrendingUp size={20} /></div>
+                              <span className="cat-label">รายได้</span>
+                            </div>
+                          ) : (
+                            [
+                              { id: 'อาหารและเครื่องดื่ม', label: 'อาหาร', icon: <Utensils size={20} />, class: 'cat-food' },
+                              { id: 'การเดินทาง', label: 'เดินทาง', icon: <Car size={20} />, class: 'cat-transport' },
+                              { id: 'ของใช้จำเป็น', label: 'จำเป็น', icon: <Package size={20} />, class: 'cat-essential' },
+                              { id: 'ช็อปปิ้ง', label: 'ช้อปปิ้ง', icon: <ShoppingBag size={20} />, class: 'cat-shop' },
+                              { id: 'บันเทิง', label: 'บันเทิง', icon: <PlayCircle size={20} />, class: 'cat-ent' },
+                              { id: 'ของใช้ในบ้าน', label: 'บ้าน', icon: <Home size={20} />, class: 'cat-home' },
+                              { id: 'สุขภาพ', label: 'สุขภาพ', icon: <HeartPulse size={20} />, class: 'cat-health' },
+                              { id: 'ครอบครัว', label: 'ครอบครัว', icon: <Users size={20} />, class: 'cat-family' },
+                              { id: 'ท่องเที่ยว', label: 'ท่องเที่ยว', icon: <Palmtree size={20} />, class: 'cat-travel' },
+                              { id: 'การศึกษา', label: 'ศึกษา', icon: <GraduationCap size={20} />, class: 'cat-edu' },
+                              { id: 'สินเชื่อ บัตรเครดิต', label: 'สินเชื่อ', icon: <CreditCard size={20} />, class: 'cat-debt' },
+                              { id: 'ค่าโทรศัพท์', label: 'โทรศัพท์', icon: <Phone size={20} />, class: 'cat-phone' },
+                              { id: 'งาน', label: 'งาน', icon: <Briefcase size={20} />, class: 'cat-work' },
+                              { id: 'เงินออม', label: 'เงินออม', icon: <Coins size={20} />, class: 'cat-save' },
+                              { id: 'อื่นๆ', label: 'อื่นๆ', icon: <MoreHorizontal size={20} />, class: 'cat-other' }
+                            ].map(cat => (
+                              <div
+                                key={cat.id}
+                                className={`category-option ${editingTx.category === cat.id ? 'active' : ''}`}
+                                onClick={() => setEditingTx({ ...editingTx, category: cat.id })}
+                              >
+                                <div className={`icon-wrap ${cat.class}`}>{cat.icon}</div>
+                                <span className="cat-label">{cat.label}</span>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="inline-row" style={{ justifyContent: 'flex-end' }}>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button className="neon-btn primary" onClick={updateTransaction}>บันทึก</button>
+                        <button className="neon-btn secondary" onClick={() => setEditingTx(null)}>ยกเลิก</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+        )}
 
       </div>
     </>
