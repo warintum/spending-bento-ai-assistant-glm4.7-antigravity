@@ -312,6 +312,46 @@ body.theme-neon-red .bento-card {
   gap: 4px;
 }
 
+/* Month Filter Styles */
+.month-filter-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: white;
+  padding: 8px 16px;
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.month-filter-wrapper:hover {
+  border-color: rgba(94, 92, 230, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+.month-filter-dropdown {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: none;
+  padding-right: 16px;
+  font-size: 0.85rem !important;
+  font-weight: 700;
+  color: #1a1b25 !important;
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+  z-index: 1;
+}
+
+.filter-icon {
+  margin-left: -12px;
+  color: #64748b;
+  pointer-events: none;
+  z-index: 0;
+}
+
 .segment-btn {
   padding: 10px 20px;
   border-radius: 14px;

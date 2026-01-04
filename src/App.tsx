@@ -103,6 +103,13 @@ const App: React.FC = () => {
   const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false);
   const [isBottomThemeDropdownOpen, setIsBottomThemeDropdownOpen] = useState(false);
 
+  const [selectedPeriod, setSelectedPeriod] = useState<string>(() => {
+    const now = new Date();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const year = now.getFullYear() + 543;
+    return `${month}/${year}`;
+  });
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importFileRef = useRef<HTMLInputElement>(null);
@@ -1185,250 +1192,126 @@ const App: React.FC = () => {
           </div>
         </header>
 
-        {isSettingsOpen && (
-          <div className="settings-overlay" onClick={() => setIsSettingsOpen(false)}>
-            <div className="settings-card" onClick={e => e.stopPropagation()}>
-              <div className="setting-header">
-                <h3 className="text-lg">Glass Customization</h3>
-                <button className="action-btn" onClick={() => setIsSettingsOpen(false)}><X size={18} /></button>
-              </div>
-
-              <div className="setting-item">
-                <div className="setting-header">
-                  <label className="text-sm">Glass Blur (ตัวการ์ด)</label>
-                  <span className="text-xs">{blur}px</span>
-                </div>
-                <input type="range" min="0" max="40" value={blur} onChange={e => setBlur(parseInt(e.target.value))} />
-              </div>
-
-              <div className="setting-item">
-                <div className="setting-header">
-                  <label className="text-sm">Glass Opacity (ความใส)</label>
-                  <span className="text-xs">{opacity}%</span>
-                </div>
-                <input type="range" min="0" max="80" value={opacity} onChange={e => setOpacity(parseInt(e.target.value))} />
-              </div>
-
-              <div style={{ padding: '15px 0', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <div className="setting-item">
-                  <div className="setting-header">
-                    <label className="text-sm">Wallpaper Blur (พื้นหลัง)</label>
-                    <span className="text-xs">{bgBlur}px</span>
-                  </div>
-                  <input type="range" min="0" max="25" value={bgBlur} onChange={e => setBgBlur(parseInt(e.target.value))} />
-                </div>
-
-                <div className="setting-item">
-                  <div className="setting-header">
-                    <label className="text-sm">Wallpaper Brightness (ความสว่าง)</label>
-                    <span className="text-xs">{bgDim}%</span>
-                  </div>
-                  <input type="range" min="20" max="100" value={bgDim} onChange={e => setBgDim(parseInt(e.target.value))} />
-                </div>
-              </div>
-
-              <div className="setting-item">
-                <div className="setting-header" style={{ marginBottom: '8px' }}>
-                  <label className="text-sm">Background Preset</label>
-                  <button
-                    className="action-btn"
-                    style={{ padding: '4px 10px', fontSize: '0.75rem', gap: '6px', border: '1px solid var(--accent-primary)', color: 'white' }}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Upload size={14} /> อัพโหลด
-                  </button>
-                  <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={handleFileUpload} />
-                </div>
-                <div className="bg-presets">
-                  {bgPresets.map((bg, i) => (
-                    <button
-                      key={i}
-                      className={`preset-btn ${bgImage === bg ? 'active' : ''}`}
-                      style={{ backgroundImage: bg ? `url(${bg})` : 'none' }}
-                      onClick={() => setBgImage(bg)}
-                    >
-                      {!bg && <X size={14} />}
-                    </button>
-                  ))}
-                  {bgImage && !bgPresets.includes(bgImage) && (
-                    <button
-                      className="preset-btn active"
-                      style={{ backgroundImage: `url(${bgImage})` }}
-                      onClick={() => setBgImage(bgImage)}
-                    />
-                  )}
-                </div>
-              </div>
-              <div className="setting-item" style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px', marginTop: '10px' }}>
-                <label className="text-sm" style={{ display: 'block', marginBottom: '12px' }}>จัดการข้อมูล</label>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button
-                    className="action-btn"
-                    style={{ flex: 1, padding: '10px', height: 'auto', flexDirection: 'column', gap: '4px', fontSize: '0.7rem', border: '1px solid rgba(255,255,255,0.1)' }}
-                    onClick={exportToCSV}
-                  >
-                    <Download size={20} />
-                    ส่งออกข้อมูล (CSV)
-                  </button>
-                  <button
-                    className="action-btn"
-                    style={{ flex: 1, padding: '10px', height: 'auto', flexDirection: 'column', gap: '4px', fontSize: '0.7rem', border: '1px solid rgba(255,255,255,0.1)' }}
-                    onClick={() => importFileRef.current?.click()}
-                  >
-                    <FileUp size={20} />
-                    นำเข้าข้อมูล
-                  </button>
-                  <input
-                    type="file"
-                    ref={importFileRef}
-                    hidden
-                    accept=".csv,.json"
-                    onChange={handleImportData}
-                  />
-                </div>
-              </div>
-              <p className="text-xs" style={{ opacity: 0.5, fontStyle: 'italic' }}>* Settings only apply in Glass Mode</p>
-
-            </div>
-          </div>
-        )}
-
-        {isCropping && tempImage && (
-          <div className="cropper-overlay">
-            <div className="cropper-card">
-              <div className="setting-header">
-                <h3 className="text-lg">ตกแต่งรูปภาพ</h3>
-                <button className="action-btn" onClick={() => setIsCropping(false)}><X size={18} /></button>
-              </div>
-              <div className="cropper-container">
-                <Cropper
-                  image={tempImage}
-                  crop={crop}
-                  zoom={zoom}
-                  aspect={window.innerWidth / window.innerHeight}
-                  onCropChange={setCrop}
-                  onCropComplete={onCropComplete}
-                  onZoomChange={setZoom}
-                />
-              </div>
-              <div className="cropper-controls">
-                <div className="setting-item" style={{ width: '100%', marginBottom: '20px' }}>
-                  <div className="setting-header">
-                    <label className="text-sm">Zoom</label>
-                    <span className="text-xs">{zoom}x</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={1}
-                    max={3}
-                    step={0.1}
-                    value={zoom}
-                    onChange={(e) => setZoom(parseFloat(e.target.value))}
-                  />
-                </div>
-                <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
-                  <button className="neon-btn secondary" style={{ flex: 1 }} onClick={() => setIsCropping(false)}>ยกเลิก</button>
-                  <button className="neon-btn primary" style={{ flex: 1 }} onClick={saveCroppedImage}>บันทึกพื้นหลัง</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {theme === 'bento-color' ? (
           <div className="bento-color-view fade-in">
-            {/* Segmented Control */}
-            {/* <div className="segmented-control">
-              <button className="segment-btn active"><div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 4px)', gap: '2px' }}>{Array(4).fill(0).map((_, i) => <div key={i} style={{ width: '4px', height: '4px', background: 'currentColor' }}></div>)}</div> Grid</button>
-              <button className="segment-btn"><div style={{ display: 'flex', gap: '2px' }}>{Array(6).fill(0).map((_, i) => <div key={i} style={{ width: '3px', height: '3px', background: 'currentColor', borderRadius: '50%' }}></div>)}</div> Swarm</button>
-              <button className="segment-btn"><div style={{ display: 'flex', gap: '2px' }}>{Array(3).fill(0).map((_, i) => <div key={i} style={{ width: '5px', height: '5px', border: '1px solid currentColor', borderRadius: '50%' }}></div>)}</div> Bubbles</button>
-            </div>*/}
+            {/* Filter Section */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', padding: '0 4px' }}>
+              <h2 className="text-lg" style={{ fontWeight: 700, color: '#1a1b25' }}>Overview</h2>
+              <div className="month-filter-wrapper">
+                <select
+                  className="month-filter-dropdown"
+                  value={selectedPeriod}
+                  onChange={(e) => setSelectedPeriod(e.target.value)}
+                >
+                  <option value="all">ดูทั้งหมด</option>
+                  <option value="this-year">ปีนี้ ({new Date().getFullYear() + 543})</option>
+                  <option value="last-year">ปีที่แล้ว ({new Date().getFullYear() + 542})</option>
+                  <hr />
+                  {Array.from(new Set([
+                    ...transactions.map(t => {
+                      const parts = t.date.split('/');
+                      if (parts.length === 3) {
+                        const m = parts[1].padStart(2, '0');
+                        const y = parts[2];
+                        return `${m}/${y}`;
+                      }
+                      return null;
+                    }).filter(Boolean) as string[]
+                  ])).sort((a, b) => {
+                    const [m1, y1] = a.split('/').map(Number);
+                    const [m2, y2] = b.split('/').map(Number);
+                    return (y2 * 12 + m2) - (y1 * 12 + m1);
+                  }).map(period => {
+                    const [m, y] = period.split('/');
+                    const monthNames = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+                    return <option key={period} value={period}>{monthNames[parseInt(m)]} {y}</option>;
+                  })}
+                </select>
+                <ChevronDown size={14} className="filter-icon" />
+              </div>
+            </div>
 
-            <div className="bento-grid">
-              {/* Main Chat/Input Card */}
-              {/* <div className={`${cardClass} large`} style={{ display: 'flex', flexDirection: 'column', gap: '8px', minHeight: '160px', background: 'white' }}>
-                <div className="no-scrollbar" style={{ height: '100px', overflowY: 'auto' }} ref={scrollRef}>
-                  <div className="chat-container">
-                    {messages.map(msg => (
-                      <div key={msg.id} className={`message ${msg.sender}`} style={{
-                        background: msg.sender === 'user' ? '#1a1b25' : '#f1f5f9',
-                        color: msg.sender === 'user' ? 'white' : '#1a1b25',
-                        borderRadius: '16px',
-                        padding: '10px 14px',
-                        fontSize: '0.8rem'
-                      }}>{msg.text}</div>
-                    ))}
-                  </div>
-                </div>
-                <div className="chat-input-wrapper" style={{ background: '#f8faff', border: '1px solid #e2e8f0' }}>
-                  <input
-                    className="chat-input" placeholder="บันทึกรายการ..."
-                    style={{ color: '#1a1b25' }}
-                    value={chatInput} onChange={e => setChatInput(e.target.value)}
-                    onKeyPress={e => e.key === 'Enter' && handleSendMessage()}
-                  />
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button className="chat-send-btn" style={{ background: '#e2e8f0', color: '#1a1b25' }} onClick={() => scanFileInputRef.current?.click()}>
-                      <ImageIcon size={18} />
-                    </button>
-                    <button className="chat-send-btn" onClick={handleSendMessage} style={{ background: '#1a1b25' }}><Send size={16} color="white" /></button>
-                  </div>
-                </div>
-              </div>*/}
+            {(() => {
+              const currentYear = new Date().getFullYear() + 543;
+              const filteredTx = transactions.filter(t => {
+                const parts = t.date.split('/');
+                if (parts.length !== 3) return false;
+                const m = parts[1].padStart(2, '0');
+                const y = parts[2];
+                const period = `${m}/${y}`;
 
-              {/* Dynamic Category Cards */}
-              {Object.entries(
-                transactions.reduce((acc, tx) => {
-                  if (tx.type === 'expense') {
-                    acc[tx.category] = (acc[tx.category] || 0) + tx.amount;
-                  }
-                  return acc;
-                }, {} as { [key: string]: number })
-              ).sort((a, b) => b[1] - a[1]).map(([cat, amount], idx) => {
-                const colors = ['card-pink', 'card-mint', 'card-blue', 'card-cyan', 'card-orange', 'card-yellow', 'card-purple', 'card-red', 'card-green'];//'card-red', 'card-green', 
-                const colorClass = colors[idx % colors.length];
-                const percentage = totalExpense > 0 ? Math.round((amount / totalExpense) * 100) : 0;
+                if (selectedPeriod === 'all') return true;
+                if (selectedPeriod === 'this-year') return parseInt(y) === currentYear;
+                if (selectedPeriod === 'last-year') return parseInt(y) === currentYear - 1;
+                return period === selectedPeriod;
+              });
+              const periodExpense = filteredTx
+                .filter(t => t.type === 'expense')
+                .reduce((acc, curr) => acc + curr.amount, 0);
 
-                // Icon mapping
-                const getIcon = (category: string) => {
-                  if (category.includes('อาหาร')) return <Utensils size={24} />;
-                  if (category.includes('เดินทาง')) return <Car size={24} />;
-                  if (category.includes('บันเทิง')) return <PlayCircle size={24} />;
-                  if (category.includes('สุขภาพ')) return <HeartPulse size={24} />;
-                  if (category.includes('ช็อปปิ้ง')) return <ShoppingBag size={24} />;
-                  if (category.includes('สินเชื่อ')) return <CreditCard size={24} />;
-                  return <Sparkles size={24} />;
-                };
+              const categoryTotals = filteredTx.reduce((acc, tx) => {
+                if (tx.type === 'expense') {
+                  acc[tx.category] = (acc[tx.category] || 0) + tx.amount;
+                }
+                return acc;
+              }, {} as { [key: string]: number });
 
-                return (
-                  <div key={cat} className={`bento-card ${idx === 0 ? 'large' : ''} ${colorClass}`}>
-                    <div className="service-card">
-                      <div className="service-badge">{percentage}%</div>
-                      <div className="service-icon-box" style={{ background: 'white' }}>
-                        <div style={{ color: '#1a1b25' }}>{getIcon(cat)}</div>
+              return (
+                <>
+                  <div className="bento-grid">
+                    {Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]).map(([cat, amount], idx) => {
+                      const colors = ['card-pink', 'card-mint', 'card-blue', 'card-cyan', 'card-orange', 'card-yellow', 'card-purple', 'card-red', 'card-green'];
+                      const colorClass = colors[idx % colors.length];
+                      const percentage = periodExpense > 0 ? Math.round((amount / periodExpense) * 100) : 0;
+
+                      const getIcon = (category: string) => {
+                        if (category.includes('อาหาร')) return <Utensils size={24} />;
+                        if (category.includes('เดินทาง')) return <Car size={24} />;
+                        if (category.includes('บันเทิง')) return <PlayCircle size={24} />;
+                        if (category.includes('สุขภาพ')) return <HeartPulse size={24} />;
+                        if (category.includes('ช็อปปิ้ง')) return <ShoppingBag size={24} />;
+                        if (category.includes('สินเชื่อ')) return <CreditCard size={24} />;
+                        return <Sparkles size={24} />;
+                      };
+
+                      return (
+                        <div key={cat} className={`bento-card ${idx === 0 ? 'large' : ''} ${colorClass}`}>
+                          <div className="service-card">
+                            <div className="service-badge">{percentage}%</div>
+                            <div className="service-icon-box" style={{ background: 'white' }}>
+                              <div style={{ color: '#1a1b25' }}>{getIcon(cat)}</div>
+                            </div>
+                            <div>
+                              <h3 className="service-title" style={{ fontSize: idx === 0 ? '0.85rem' : '0.7rem' }}>{cat}</h3>
+                              <div className="service-amount" style={{ fontSize: idx === 0 ? '1.75rem' : '1.25rem' }}>฿{amount.toLocaleString()}</div>
+                              {idx === 0 && <div className="service-subtext">period total</div>}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {filteredTx.length === 0 && (
+                      <div className="bento-card card-mint large" style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '200px', opacity: 0.8 }}>
+                        <History size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
+                        <p className="text-lg" style={{ fontWeight: 600 }}>ไม่มีรายการในเดือนนี้</p>
+                        <p className="text-sm">ลองเปลี่ยนเดือนหรือเพิ่มรายการใหม่ดูนะครับ</p>
                       </div>
-                      <div>
-                        <h3 className="service-title" style={{ fontSize: idx === 0 ? '0.85rem' : '0.7rem' }}>{cat}</h3>
-                        <div className="service-amount" style={{ fontSize: idx === 0 ? '1.75rem' : '1.25rem' }}>฿{amount.toLocaleString()}</div>
-                        {idx === 0 && <div className="service-subtext">~฿{(amount * 12).toLocaleString()}/yr</div>}
-                      </div>
+                    )}
+                  </div>
+
+                  <div className="bento-summary">
+                    <div className="summary-item">
+                      <div className="summary-label">Total / Period</div>
+                      <div className="summary-value">฿{periodExpense.toLocaleString()}</div>
+                    </div>
+                    <div className="summary-item">
+                      <div className="summary-label">Average per day</div>
+                      <div className="summary-value accent">฿{Math.round(periodExpense / 30).toLocaleString()}</div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-
-            {/* Summary Block */}
-            <div className="bento-summary">
-              <div className="summary-item">
-                <div className="summary-label">Total / Month</div>
-                <div className="summary-value">฿{totalExpense.toLocaleString()}</div>
-              </div>
-              <div className="summary-item">
-                <div className="summary-label">Yearly Projection</div>
-                <div className="summary-value accent">฿{(totalExpense * 12).toLocaleString()}</div>
-              </div>
-            </div>
+                </>
+              );
+            })()}
 
             <div style={{ padding: '40px 20px', textAlign: 'center', position: 'relative' }}>
               <button
